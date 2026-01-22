@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ร้านค้า Mini App</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 p-4">
+
+    <div class="max-w-md mx-auto bg-white rounded-lg shadow p-4">
+        <h1 class="text-2xl font-bold mb-4 text-center">รายการสินค้า</h1>
+        
+        <div id="product-list" class="space-y-4">
+            <p class="text-center text-gray-500">กำลังโหลดสินค้า...</p>
+        </div>
+
+        <div class="border-t my-6"></div>
+
+        <h2 class="text-xl font-bold mb-3">ข้อมูลจัดส่ง & ชำระเงิน</h2>
+        <form id="orderForm" class="space-y-3">
+            <input type="text" id="name" placeholder="ชื่อ-นามสกุล" class="w-full border p-2 rounded" required>
+            <input type="tel" id="tel" placeholder="เบอร์โทรศัพท์" class="w-full border p-2 rounded" required>
+            <textarea id="address" placeholder="ที่อยู่จัดส่ง" class="w-full border p-2 rounded" required></textarea>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700">แนบสลิปโอนเงิน</label>
+                <input type="file" id="slip" accept="image/*" class="w-full mt-1">
+            </div>
+
+            <button type="submit" id="submitBtn" class="w-full bg-green-500 text-white font-bold py-3 rounded hover:bg-green-600 transition">
+                ยืนยันการสั่งซื้อ
+            </button>
+        </form>
+    </div>
+
+    <script>
+        const LIFF_ID = "2006820737-B6zOM56Y";
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbyL-HaoVYFxy3RRDLNXaandxLmC1dE-cCBQy6MUrRGuGMhkLP9wX82yM_025HC2WuHSbw/exec";
+        
+        let cart = []; // เก็บสินค้าที่เลือก
+        let userLineUid = "";
+
+        // 1. เริ่มต้น LIFF
+        async function main() {
+            try {
+                await liff.init({ liffId: LIFF_ID });
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                } else {
+                    const profile = await liff.getProfile();
+                    userLineUid = profile.userId;
+                    fetchProducts(); // โหลดสินค้าเมื่อ Login เสร็จ
+                }
+            } catch (err) {
+                console.error(err);
+                alert("LIFF Init Failed");
+            }
+        }
+
+        // 2. ดึงสินค้าจาก Google Sheet
+        function fetchProducts() {
+            fetch(GAS_URL)
+                .then(res => res.json())
+                .then(products => {
+                    const container = document.getElementById('product-list');
+                    container.innerHTML = "";
+                    products.forEach(p => {
+                        // สร้างรายการสินค้าแบบง่าย (เลือกจำนวนไม่ได้ เน้นกดเพิ่ม)
+                        const html = `
+                            <div class="flex items-center justify-between border p-3 rounded">
+                                <div class="flex items-center space-x-3">
+                                    <img src="${p.image}" class="w-16 h-16 object-cover rounded">
+                                    <div>
+                                        <div class="font-bold">${p.name}</div>
+                                        <div class="text-green-600">${p.price} บาท</div>
+                                    </div>
+                                </div>
+                                <button onclick="addToCart('${p.id}', '${p.name}', ${p.price})" class="bg-blue-500 text-white px-3 py-1 rounded text-sm">
+                                    + เพิ่ม
+                                </button>
+                            </div>
+                        `;
+                        container.innerHTML += html;
+                    });
+                });
+        }
+
+        // ฟังก์ชันเพิ่มสินค้า (แบบง่าย)
+        function addToCart(id, name, price) {
+            // เช็คว่ามีของในตะกร้ายัง ถ้ามีให้บวกจำนวน
+            const existing = cart.find(item => item.id === id);
+            if(existing) {
+                existing.quantity++;
+            } else {
+                cart.push({ id, name, price, quantity: 1 });
+            }
+            alert(`เพิ่ม ${name} แล้ว!`);
+        }
+
+        // 3. แปลงไฟล์รูปเป็น Base64
+        const convertToBase64 = (file) => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        };
+
+        // 4. ส่งข้อมูลสั่งซื้อ
+        document.getElementById('orderForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (cart.length === 0) return alert("กรุณาเลือกสินค้าอย่างน้อย 1 ชิ้น");
+            if (!userLineUid) return alert("ไม่พบข้อมูล LINE ของคุณ");
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.textContent = "กำลังส่งข้อมูล...";
+            submitBtn.disabled = true;
+
+            const name = document.getElementById('name').value;
+            const tel = document.getElementById('tel').value;
+            const address = document.getElementById('address').value;
+            const fileInput = document.getElementById('slip');
+            
+            let base64Image = "";
+            if (fileInput.files.length > 0) {
+                base64Image = await convertToBase64(fileInput.files[0]);
+            }
+
+            // คำนวณราคารวม
+            const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+            const payload = {
+                lineUid: userLineUid,
+                name: name,
+                telephone: tel,
+                address: address,
+                image: base64Image, // ส่งรูปเป็น base64
+                orderDetails: cart,
+                totalPrice: totalPrice
+            };
+
+            // ส่งข้อมูลไป GAS (ใช้ mode: 'no-cors' เพื่อเลี่ยงปัญหา browser แต่ GAS จะทำงานได้ปกติ)
+            fetch(GAS_URL, {
+                method: 'POST',
+                mode: 'no-cors', 
+                headers: { 'Content-Type': 'text/plain' }, // GAS รับ text/plain ได้ดีกว่าในบางเคส
+                body: JSON.stringify(payload)
+            }).then(() => {
+                alert("สั่งซื้อสำเร็จ! กรุณาตรวจสอบ LINE ของคุณสำหรับใบเสร็จ");
+                liff.closeWindow();
+            }).catch(err => {
+                console.error(err);
+                alert("เกิดข้อผิดพลาด");
+                submitBtn.textContent = "ยืนยันการสั่งซื้อ";
+                submitBtn.disabled = false;
+            });
+        });
+
+        main();
+    </script>
+</body>
+</html>
