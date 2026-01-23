@@ -31,7 +31,6 @@
         #map { height: 100%; width: 100%; }
         .center-pin { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); z-index: 1000; pointer-events: none; }
         
-        /* Badge Animation */
         .badge-pop { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes pop { 0% { transform: scale(0); } 90% { transform: scale(1.2); } 100% { transform: scale(1); } }
     </style>
@@ -48,7 +47,6 @@
                         <p class="text-[10px] opacity-90">สวัสดี, <span id="header-name">Guest</span></p>
                     </div>
                 </div>
-                
                 <button onclick="openCheckoutModal()" class="relative p-2">
                     <i class="fas fa-shopping-basket text-xl"></i>
                     <span id="header-cart-badge" class="absolute top-0 right-0 bg-yellow-400 text-red-600 text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full hidden shadow-sm">0</span>
@@ -132,6 +130,10 @@
                         <div>
                             <p class="text-xs text-gray-500">รวม</p>
                             <p class="text-xl font-bold text-mk-red" id="ai-total-price">0 ฿</p>
+                        </div>
+                        <div class="text-right mr-4">
+                             <p class="text-xs text-gray-500">พลังงาน</p>
+                            <p class="text-sm font-bold text-orange-600" id="ai-total-kcal">0 Kcal</p>
                         </div>
                         <button onclick="addAiSetToCart()" class="bg-mk-red text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-red-800">
                             ใส่ตะกร้า
@@ -286,36 +288,22 @@
             document.getElementById('header-name').innerText = profile.displayName;
         }
 
-        // --- NAVIGATION ---
         function switchPage(pageId) {
-            document.querySelectorAll('.page').forEach(el => {
-                if(!el.classList.contains('full-screen')) el.classList.remove('active');
-            });
-            document.querySelectorAll('.full-screen').forEach(el => {
-                el.classList.remove('active');
-                el.classList.add('hidden');
-            });
-
-            document.querySelectorAll('.nav-item').forEach(el => {
-                el.classList.remove('active-tab'); el.classList.add('inactive-tab');
-            });
+            document.querySelectorAll('.page').forEach(el => { if(!el.classList.contains('full-screen')) el.classList.remove('active'); });
+            document.querySelectorAll('.full-screen').forEach(el => { el.classList.remove('active'); el.classList.add('hidden'); });
+            document.querySelectorAll('.nav-item').forEach(el => { el.classList.remove('active-tab'); el.classList.add('inactive-tab'); });
             document.getElementById(`tab-${pageId}`).classList.add('active-tab');
             document.getElementById(`tab-${pageId}`).classList.remove('inactive-tab');
-            
             document.getElementById(`page-${pageId}`).classList.add('active');
             if(pageId === 'home') updateCartUI();
             if(pageId === 'history') fetchHistory();
         }
 
         function goBack() {
-            document.querySelectorAll('.full-screen').forEach(el => {
-                el.classList.remove('active');
-                el.classList.add('hidden');
-            });
+            document.querySelectorAll('.full-screen').forEach(el => { el.classList.remove('active'); el.classList.add('hidden'); });
             if(document.getElementById('page-home').classList.contains('active')) updateCartUI();
         }
 
-        // --- PRODUCTS ---
         function fetchProducts() {
             const cached = localStorage.getItem('mk_products_cache');
             if (cached) {
@@ -353,7 +341,6 @@
             });
         }
 
-        // --- DETAIL PAGE ---
         let currentDetailId = null;
         function openProductDetail(id) {
             const p = allProducts.find(x => x.id == id);
@@ -366,16 +353,13 @@
             document.getElementById('detail-kcal').style.display = p.kcal ? 'block' : 'none';
             document.getElementById('detail-qty').innerText = "1";
             document.getElementById('detail-note').value = "";
-            
             const page = document.getElementById('page-product-detail');
-            page.classList.remove('hidden');
-            page.classList.add('active');
+            page.classList.remove('hidden'); page.classList.add('active');
         }
 
         function adjustDetailQty(delta) {
             let qty = parseInt(document.getElementById('detail-qty').innerText);
-            qty += delta;
-            if (qty < 1) qty = 1;
+            qty += delta; if (qty < 1) qty = 1;
             document.getElementById('detail-qty').innerText = qty;
         }
 
@@ -393,22 +377,19 @@
             updateCartUI();
         }
 
-        // --- CART SYSTEM (UPDATED: Top Icon) ---
+        // --- CART SYSTEM (FIXED: +/- Buttons) ---
         function updateCartUI() {
             const items = Object.values(cart);
             const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
             const totalPrice = items.reduce((sum, i) => sum + (i.price * i.quantity), 0);
             
-            // อัปเดตไอคอนตะกร้าด้านบน
             const badge = document.getElementById('header-cart-badge');
             if (totalQty > 0) {
                 badge.innerText = totalQty;
                 badge.classList.remove('hidden');
-                badge.classList.add('badge-pop'); // Animation
+                badge.classList.add('badge-pop');
                 setTimeout(() => badge.classList.remove('badge-pop'), 300);
-            } else {
-                badge.classList.add('hidden');
-            }
+            } else { badge.classList.add('hidden'); }
 
             document.getElementById('cart-total-modal').innerText = totalPrice.toLocaleString() + ' ฿';
             renderCartItems();
@@ -425,26 +406,45 @@
                 const noteHtml = item.note ? `<p class="text-xs text-mk-red"><i class="far fa-edit"></i> ${item.note}</p>` : '';
                 container.innerHTML += `
                     <div class="flex justify-between border-b pb-3 mb-3 last:border-0 last:mb-0 last:pb-0">
-                        <div class="flex space-x-3">
-                            <img src="${item.image}" class="w-12 h-12 rounded object-cover bg-gray-100">
-                            <div><p class="font-bold text-sm text-gray-800">${item.name}</p><p class="text-xs text-gray-500">${item.price} x ${item.quantity}</p>${noteHtml}</div>
+                        <div class="flex space-x-3 w-2/3">
+                            <img src="${item.image}" class="w-12 h-12 rounded object-cover bg-gray-100 flex-shrink-0">
+                            <div>
+                                <p class="font-bold text-sm text-gray-800 line-clamp-1">${item.name}</p>
+                                <p class="text-xs text-gray-500">${item.price} ฿</p>
+                                ${noteHtml}
+                            </div>
                         </div>
-                        <div class="font-bold text-sm self-center">${(item.price * item.quantity).toLocaleString()}</div>
-                        <button onclick="removeFromCart('${item.id}')" class="text-gray-400 self-center ml-2"><i class="fas fa-trash"></i></button>
+                        <div class="flex flex-col items-end">
+                            <div class="flex items-center space-x-2 bg-gray-50 rounded-lg p-1 border border-gray-100">
+                                <button onclick="updateCartItemQty('${item.id}', -1)" class="w-6 h-6 flex items-center justify-center bg-white rounded shadow text-mk-red active:scale-90"><i class="fas fa-minus text-xs"></i></button>
+                                <span class="text-sm font-bold w-4 text-center">${item.quantity}</span>
+                                <button onclick="updateCartItemQty('${item.id}', 1)" class="w-6 h-6 flex items-center justify-center bg-mk-red text-white rounded shadow active:scale-90"><i class="fas fa-plus text-xs"></i></button>
+                            </div>
+                            <div class="font-bold text-sm mt-1">${(item.price * item.quantity).toLocaleString()} ฿</div>
+                        </div>
                     </div>`;
             });
         }
-        function removeFromCart(id) { delete cart[id]; updateCartUI(); }
+
+        // New Helper for Cart +/-
+        function updateCartItemQty(id, delta) {
+            if (cart[id]) {
+                cart[id].quantity += delta;
+                if (cart[id].quantity <= 0) delete cart[id];
+                updateCartUI();
+            }
+        }
+
         function openCheckoutModal() { 
             document.getElementById('checkout-modal').classList.remove('hidden'); 
             if(userProfileData.name) document.getElementById('checkout-name').value = userProfileData.name; 
             if(userProfileData.tel) document.getElementById('checkout-tel').value = userProfileData.tel; 
             if(userProfileData.address) document.getElementById('checkout-address').value = userProfileData.address; 
-            updateCartUI(); // Refresh totals
+            updateCartUI(); 
         }
         function closeCheckoutModal() { document.getElementById('checkout-modal').classList.add('hidden'); }
 
-        // --- HISTORY (UPDATED: Price Calc Fix) ---
+        // --- HISTORY ---
         function fetchHistory() {
             const list = document.getElementById('history-list');
             list.innerHTML = '<p class="text-center text-gray-400 mt-10">กำลังโหลด...</p>';
@@ -456,10 +456,7 @@
                     data.forEach(order => {
                         let items = []; 
                         try { items = JSON.parse(order.items); if(!Array.isArray(items)) items=[items]; } catch(e){ items=[]; }
-                        
-                        // FIX: คำนวณราคาให้แม่นยำขึ้น โดยแปลงเป็น Number
                         const total = items.reduce((sum,i)=>sum+(Number(i.price||0)*Number(i.quantity||1)),0);
-                        
                         const safeData = encodeURIComponent(JSON.stringify({...order, items, total}));
                         let stColor = "bg-gray-100 text-gray-600";
                         if(order.status.includes('รอ')) stColor="bg-yellow-100 text-yellow-700";
@@ -494,11 +491,10 @@
                     </div>`;
             });
             const page = document.getElementById('page-history-detail');
-            page.classList.remove('hidden');
-            page.classList.add('active');
+            page.classList.remove('hidden'); page.classList.add('active');
         }
 
-        // --- AI LOGIC (UPDATED: Similar Items Fix) ---
+        // --- AI LOGIC (FIXED: ID Match & Similar Items) ---
         function generateAiSet() { 
             const limit = parseInt(document.getElementById('ai-value').value); 
             const listContainer = document.getElementById('ai-items-list'); 
@@ -522,11 +518,11 @@
                 tp += p.price; tk += (p.kcal || 0); 
                 listContainer.innerHTML += `<div class="flex items-center p-3"><img src="${p.image}" class="w-12 h-12 rounded-lg object-cover bg-gray-100"><div class="ml-3 flex-grow"><p class="font-bold text-sm text-gray-800">${p.name}</p><p class="text-xs text-gray-500">${p.category} | ${p.kcal||0} Kcal</p></div><p class="font-bold text-mk-red">${p.price} ฿</p></div>`; 
             }); 
+            // Fixed IDs
             document.getElementById('ai-total-price').innerText = tp + " ฿"; 
             document.getElementById('ai-total-kcal').innerText = tk + " Kcal"; 
             document.getElementById('ai-result').classList.remove('hidden'); 
             
-            // FIX: Similar Items Logic
             if(bestSet.length > 0) generateSimilarItems(bestSet[0]); 
         }
         
@@ -535,7 +531,6 @@
             const list = document.getElementById('ai-similar-list');
             if(!mainDish) return;
             
-            // หาเมนูในหมวดเดียวกัน แต่ราคาใกล้เคียง (+- 20%)
             const similars = allProducts
                 .filter(p => p.category === mainDish.category && p.id !== mainDish.id && Math.abs(p.price - mainDish.price) < 50)
                 .sort(() => 0.5 - Math.random())
@@ -560,7 +555,6 @@
             container.classList.remove('hidden');
         }
 
-        // --- UTILS ---
         function addAiSetToCart() { currentAiSet.forEach(p => { if (cart[p.id]) cart[p.id].quantity++; else cart[p.id] = { ...p, quantity: 1 }; }); updateCartUI(); alert(`เพิ่ม ${currentAiSet.length} รายการแล้ว!`); switchPage('home'); }
         function replaceMainDish(newId) { const newMain = allProducts.find(p => p.id == newId); currentAiSet[0] = newMain; const listContainer = document.getElementById('ai-items-list'); listContainer.innerHTML = ""; let tp = 0; let tk = 0; currentAiSet.forEach(p => { tp += p.price; tk += (p.kcal || 0); listContainer.innerHTML += `<div class="flex items-center p-3"><img src="${p.image}" class="w-12 h-12 rounded-lg object-cover bg-gray-100"><div class="ml-3 flex-grow"><p class="font-bold text-sm text-gray-800">${p.name}</p><p class="text-xs text-gray-500">${p.category} | ${p.kcal||0} Kcal</p></div><p class="font-bold text-mk-red">${p.price} ฿</p></div>`; }); document.getElementById('ai-total-price').innerText = tp + " ฿"; document.getElementById('ai-total-kcal').innerText = tk + " Kcal"; }
         function setAiMode(mode) { aiMode = mode; const bB = document.getElementById('btn-mode-budget'); const bK = document.getElementById('btn-mode-kcal'); const lb = document.getElementById('ai-label'); const sl = document.getElementById('ai-slider'); const inp = document.getElementById('ai-value'); if (mode === 'budget') { bB.className = "flex-1 py-2 rounded-md text-sm font-bold bg-white shadow text-mk-red transition"; bK.className = "flex-1 py-2 rounded-md text-sm font-bold text-gray-500 transition"; lb.innerText = "งบประมาณไม่เกิน (บาท)"; sl.min = 50; sl.max = 1000; sl.value = 200; inp.value = 200; } else { bK.className = "flex-1 py-2 rounded-md text-sm font-bold bg-white shadow text-mk-red transition"; bB.className = "flex-1 py-2 rounded-md text-sm font-bold text-gray-500 transition"; lb.innerText = "พลังงานไม่เกิน (Kcal)"; sl.min = 200; sl.max = 1500; sl.value = 500; inp.value = 500; } }
