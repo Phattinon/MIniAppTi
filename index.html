@@ -3,177 +3,355 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MK Delivery Clone</title>
+    <title>MK Delivery Pro</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap');
-        body { font-family: 'Prompt', sans-serif; background-color: #F8F9FA; padding-bottom: 90px; }
+        body { font-family: 'Prompt', sans-serif; background-color: #F8F9FA; padding-bottom: 90px; -webkit-tap-highlight-color: transparent; }
         
-        /* MK Theme Colors */
+        /* MK Theme */
         .bg-mk-red { background-color: #ce1126; }
         .text-mk-red { color: #ce1126; }
-        .border-mk-red { border-color: #ce1126; }
-        .hover-bg-mk-dark:hover { background-color: #a00503; }
+        .active-tab { color: #ce1126; }
+        .inactive-tab { color: #9CA3AF; }
         
-        /* Category Scroll Bar */
         .hide-scroll::-webkit-scrollbar { display: none; }
         .category-btn.active { background-color: #ce1126; color: white; border-color: #ce1126; }
         
-        .modal-open { overflow: hidden; }
-        .fade-in { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Page Transitions */
+        .page-section { display: none; animation: fadeIn 0.2s ease-in-out; }
+        .page-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Map */
+        #map { height: 100%; width: 100%; }
+        .center-pin { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); z-index: 1000; pointer-events: none; }
     </style>
 </head>
 <body>
 
-    <div class="bg-white shadow-sm sticky top-0 z-10">
-        <div class="p-4 flex justify-between items-center border-b">
-            <div class="flex items-center space-x-2">
-                <div class="w-8 h-8 bg-mk-red rounded text-white flex items-center justify-center font-bold">MK</div>
+    <section id="page-home" class="page-section active">
+        <div class="bg-white sticky top-0 z-10 shadow-sm pb-2">
+            <div class="p-4 flex justify-between items-center bg-mk-red text-white">
                 <div>
-                    <h1 class="text-lg font-bold text-gray-800">MK Delivery</h1>
-                    <p class="text-xs text-gray-500">ความอร่อยส่งตรงถึงบ้าน</p>
+                    <h1 class="text-lg font-bold">MK Delivery</h1>
+                    <p class="text-xs opacity-90">สั่งเลย อร่อยคุ้ม!</p>
+                </div>
+                <div id="user-profile-icon"></div>
+            </div>
+            
+            <div class="px-4 mt-[-15px]">
+                <div class="bg-white rounded-lg shadow-md p-2 flex items-center border">
+                    <i class="fas fa-search text-gray-400 ml-2"></i>
+                    <input type="text" id="search-input" placeholder="ค้นหาเมนูโปรด..." class="w-full ml-3 outline-none text-sm" onkeyup="searchProduct(this.value)">
                 </div>
             </div>
-            <div id="user-profile" class="hidden"></div>
+
+            <div class="px-4 mt-4">
+                <div class="bg-orange-100 rounded-lg p-3 flex items-center justify-between border border-orange-200">
+                    <div>
+                        <span class="bg-orange-500 text-white text-xs px-2 py-1 rounded">PROMO</span>
+                        <span class="text-sm font-bold text-orange-800 ml-2">ลด 50% เป็ดย่าง!</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-orange-400 text-xs"></i>
+                </div>
+            </div>
+
+            <div id="category-container" class="flex overflow-x-auto space-x-2 p-3 hide-scroll mt-1">
+                <button onclick="filterCategory('all')" class="category-btn active whitespace-nowrap px-4 py-1 rounded-full border border-gray-300 text-sm text-gray-600 transition">ทั้งหมด</button>
+            </div>
         </div>
 
-        <div id="category-container" class="flex overflow-x-auto space-x-2 p-3 bg-white hide-scroll border-b">
-            <button onclick="filterCategory('all')" class="category-btn active whitespace-nowrap px-4 py-1 rounded-full border border-gray-300 text-sm text-gray-600 transition">ทั้งหมด</button>
+        <div class="container mx-auto p-4">
+            <div id="product-list" class="grid grid-cols-2 gap-4 pb-10">
+                <div class="bg-white rounded-xl p-3 shadow-sm h-48 animate-pulse"></div>
+                <div class="bg-white rounded-xl p-3 shadow-sm h-48 animate-pulse"></div>
+            </div>
         </div>
-    </div>
+    </section>
 
-    <div class="container mx-auto p-4">
-        <div id="product-list" class="grid grid-cols-2 gap-4 pb-4">
-            <div class="bg-white rounded-xl p-3 shadow-sm h-48 animate-pulse"></div>
-            <div class="bg-white rounded-xl p-3 shadow-sm h-48 animate-pulse"></div>
+    <section id="page-history" class="page-section">
+        <div class="bg-white p-4 shadow-sm sticky top-0 z-10">
+            <h1 class="text-xl font-bold text-gray-800">ประวัติการสั่งซื้อ</h1>
         </div>
-    </div>
+        <div id="history-list" class="p-4 space-y-3 pb-20">
+            <p class="text-center text-gray-400 mt-10">กำลังโหลดข้อมูล...</p>
+        </div>
+    </section>
 
-    <div id="cart-bar" class="fixed bottom-0 left-0 w-full bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] p-4 z-20 hidden transform transition-transform duration-300 translate-y-full">
-        <div onclick="openCheckoutModal()" class="bg-mk-red text-white rounded-lg p-3 flex justify-between items-center shadow-lg cursor-pointer active:scale-95 transition-transform hover-bg-mk-dark">
+    <section id="page-profile" class="page-section">
+        <div class="bg-mk-red p-6 text-white text-center rounded-b-3xl shadow-md">
+            <div id="profile-img-large" class="w-20 h-20 bg-white rounded-full mx-auto border-4 border-white shadow-lg overflow-hidden"></div>
+            <h2 id="profile-name" class="text-xl font-bold mt-3">Guest</h2>
+            <p class="text-sm opacity-80">แก้ไขข้อมูลของคุณเพื่อความรวดเร็ว</p>
+        </div>
+
+        <div class="p-4 -mt-4">
+            <div class="bg-white rounded-xl shadow-lg p-5 space-y-4">
+                <h3 class="font-bold text-gray-700 border-b pb-2">ข้อมูลส่วนตัว (บันทึกไว้ใช้ตลอด)</h3>
+                
+                <div>
+                    <label class="text-xs text-gray-500">ชื่อ-นามสกุล</label>
+                    <input type="text" id="prof-name" class="w-full border-b p-2 outline-none focus:border-red-500">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500">เบอร์โทรศัพท์</label>
+                    <input type="tel" id="prof-tel" class="w-full border-b p-2 outline-none focus:border-red-500">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500">ที่อยู่จัดส่ง</label>
+                    <textarea id="prof-address" rows="2" class="w-full border rounded p-2 outline-none focus:border-red-500 bg-gray-50"></textarea>
+                </div>
+
+                <button onclick="saveProfile()" class="w-full bg-mk-red text-white font-bold py-2 rounded-lg shadow hover:bg-red-800 transition">
+                    บันทึกข้อมูล
+                </button>
+            </div>
+            
+            <div class="mt-4 text-center">
+                 <button onclick="liff.closeWindow()" class="text-gray-400 text-sm underline">ปิดแอป</button>
+            </div>
+        </div>
+    </section>
+
+    <nav class="fixed bottom-0 w-full bg-white border-t flex justify-around py-3 z-40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <button onclick="switchPage('home')" class="nav-item active-tab flex flex-col items-center w-full" id="tab-home">
+            <i class="fas fa-utensils text-xl mb-1"></i>
+            <span class="text-[10px]">เมนู</span>
+        </button>
+        <button onclick="switchPage('history')" class="nav-item inactive-tab flex flex-col items-center w-full" id="tab-history">
+            <i class="fas fa-history text-xl mb-1"></i>
+            <span class="text-[10px]">ประวัติ</span>
+        </button>
+        <button onclick="switchPage('profile')" class="nav-item inactive-tab flex flex-col items-center w-full" id="tab-profile">
+            <i class="fas fa-user text-xl mb-1"></i>
+            <span class="text-[10px]">โปรไฟล์</span>
+        </button>
+    </nav>
+
+    <div id="cart-bar" class="fixed bottom-[70px] left-4 right-4 z-30 hidden transform transition-transform duration-300 translate-y-20">
+        <div onclick="openCheckoutModal()" class="bg-mk-red text-white rounded-xl p-3 flex justify-between items-center shadow-2xl cursor-pointer">
             <div class="flex items-center space-x-3">
                 <div class="bg-white text-mk-red font-bold rounded-full w-8 h-8 flex items-center justify-center text-sm" id="cart-count">0</div>
-                <span class="font-medium">ดูตะกร้าสินค้า</span>
+                <span class="font-medium">ตะกร้า</span>
             </div>
             <span class="font-bold text-lg" id="cart-total">0 ฿</span>
         </div>
     </div>
 
     <div id="checkout-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-end justify-center transition-opacity">
-        <div class="bg-white w-full h-[90vh] rounded-t-3xl p-6 overflow-y-auto relative animate-slide-up">
-            
+        <div class="bg-white w-full h-[95vh] rounded-t-3xl p-6 overflow-y-auto relative animate-slide-up pb-20">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-gray-800">สรุปรายการ</h2>
-                <button onclick="closeCheckoutModal()" class="text-gray-400 hover:text-red-500">
-                    <i class="fas fa-times fa-lg"></i>
-                </button>
+                <h2 class="text-2xl font-bold">สรุปรายการ</h2>
+                <button onclick="closeCheckoutModal()" class="text-gray-400"><i class="fas fa-times fa-lg"></i></button>
             </div>
-
+            
             <div id="cart-items-container" class="space-y-4 mb-6"></div>
             <div class="border-t border-dashed my-4"></div>
 
             <form id="orderForm" class="space-y-4">
-                <h3 class="font-bold text-gray-700">📍 ข้อมูลจัดส่ง</h3>
-                
-                <input type="text" id="name" placeholder="ชื่อ-นามสกุล" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" required>
-                <input type="tel" id="tel" placeholder="เบอร์โทรศัพท์" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" required>
-                
+                <h3 class="font-bold text-gray-700">📍 จัดส่งที่</h3>
+                <input type="text" id="checkout-name" placeholder="ชื่อ" class="w-full border p-3 rounded-lg" required>
+                <input type="tel" id="checkout-tel" placeholder="เบอร์โทร" class="w-full border p-3 rounded-lg" required>
                 <div class="relative">
-                    <textarea id="address" rows="2" placeholder="ที่อยู่จัดส่ง" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 pr-10" required></textarea>
-                    <button type="button" onclick="getLocation()" class="absolute top-2 right-2 text-mk-red hover:text-red-800 p-1" title="ใช้ตำแหน่งปัจจุบัน">
-                        <i class="fas fa-map-marker-alt fa-lg"></i>
-                    </button>
-                </div>
-                <p id="location-status" class="text-xs text-gray-400 ml-1">กดไอคอนหมุดเพื่อระบุพิกัดปัจจุบัน</p>
-
-                <h3 class="font-bold text-gray-700 mt-4">📸 สลิปโอนเงิน</h3>
-                <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4 text-center relative hover:bg-gray-100 transition">
-                    <input type="file" id="slip" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="previewSlip(this)">
-                    <div id="slip-preview-box">
-                        <i class="fas fa-cloud-upload-alt text-gray-400 text-3xl mb-2"></i>
-                        <p class="text-sm text-gray-500">แตะเพื่ออัปโหลดสลิป</p>
-                    </div>
-                    <img id="slip-img" class="hidden max-h-40 mx-auto rounded-lg shadow-sm">
+                    <textarea id="checkout-address" rows="2" placeholder="ที่อยู่" class="w-full border p-3 rounded-lg pr-10" required></textarea>
+                    <button type="button" onclick="openMapModal()" class="absolute top-2 right-2 text-mk-red"><i class="fas fa-map-marker-alt fa-lg"></i></button>
                 </div>
                 
-                <div class="h-24"></div> <div class="fixed bottom-0 left-0 w-full bg-white p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] border-t z-50">
-                    <button type="submit" id="submitBtn" class="w-full bg-mk-red text-white font-bold py-3 rounded-xl shadow-lg hover-bg-mk-dark transition flex justify-between px-6">
-                        <span>สั่งเลย</span>
-                        <span id="final-total">0 ฿</span>
-                    </button>
-                </div>
+                <h3 class="font-bold text-gray-700 mt-4">📸 สลิปโอนเงิน</h3>
+                <input type="file" id="slip" accept="image/*" class="w-full" required>
+                
+                <button type="submit" id="submitBtn" class="w-full bg-mk-red text-white font-bold py-3 rounded-xl shadow-lg mt-6 flex justify-between px-6">
+                    <span>ยืนยันสั่งซื้อ</span><span id="final-total">0 ฿</span>
+                </button>
             </form>
         </div>
+    </div>
+
+    <div id="map-modal" class="fixed inset-0 bg-white z-[60] hidden flex flex-col">
+        <div class="p-4 shadow flex justify-between"><h3 class="font-bold">ระบุพิกัด</h3><button onclick="closeMapModal()">ปิด</button></div>
+        <div class="relative flex-grow"><div id="map"></div><div class="center-pin"><i class="fas fa-map-marker-alt text-4xl text-mk-red"></i></div><button onclick="panToCurrentLocation()" class="absolute bottom-6 right-4 bg-white p-3 rounded-full shadow z-[500]"><i class="fas fa-crosshairs"></i></button></div>
+        <div class="p-4"><button onclick="confirmLocation()" class="w-full bg-mk-red text-white font-bold py-3 rounded-xl">ยืนยันตำแหน่งนี้</button></div>
     </div>
 
     <script>
         const LIFF_ID = "2006820737-B6zOM56Y";
         const GAS_URL = "https://script.google.com/macros/s/AKfycbyL-HaoVYFxy3RRDLNXaandxLmC1dE-cCBQy6MUrRGuGMhkLP9wX82yM_025HC2WuHSbw/exec";
-
-
+        
+        // Global State
         let allProducts = [];
-        let cart = {}; 
+        let cart = {};
         let userLineUid = "";
+        let map, marker;
+        let userProfileData = { name: '', tel: '', address: '' }; // Local cache
 
+        // --- INIT ---
         async function main() {
             try {
                 await liff.init({ liffId: LIFF_ID });
-                if (!liff.isLoggedIn()) {
-                    liff.login();
-                } else {
+                if (!liff.isLoggedIn()) liff.login();
+                else {
                     const profile = await liff.getProfile();
                     userLineUid = profile.userId;
                     
-                    document.getElementById('user-profile').innerHTML = `<img src="${profile.pictureUrl}" class="w-8 h-8 rounded-full border border-gray-200">`;
-                    document.getElementById('user-profile').classList.remove('hidden');
+                    // Setup UI with Profile
+                    document.getElementById('user-profile-icon').innerHTML = `<img src="${profile.pictureUrl}" class="w-8 h-8 rounded-full border border-white">`;
+                    document.getElementById('profile-img-large').innerHTML = `<img src="${profile.pictureUrl}" class="w-full h-full object-cover">`;
+                    document.getElementById('profile-name').innerText = profile.displayName;
                     
+                    // Load Data
                     fetchProducts();
-                    fetchUserData(userLineUid); // ดึงข้อมูลลูกค้าเก่า
+                    loadProfileFromLocalStorage(); // Load local first
+                    fetchHistory(); // Pre-load history
                 }
-            } catch (err) {
-                console.error(err);
-                alert("LIFF Error: " + err.message);
+            } catch (err) { console.error(err); }
+        }
+
+        // --- NAVIGATION ---
+        function switchPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('active-tab');
+                el.classList.add('inactive-tab');
+            });
+
+            // Show selected
+            document.getElementById(`page-${pageId}`).classList.add('active');
+            document.getElementById(`tab-${pageId}`).classList.add('active-tab');
+            document.getElementById(`tab-${pageId}`).classList.remove('inactive-tab');
+
+            // Logic specific to page
+            if (pageId === 'home') updateCartUI(); // Show cart bar
+            else document.getElementById('cart-bar').classList.add('translate-y-20'); // Hide cart bar
+            
+            if (pageId === 'history') fetchHistory();
+        }
+
+        // --- PROFILE LOGIC ---
+        function loadProfileFromLocalStorage() {
+            const saved = localStorage.getItem('mk_profile');
+            if (saved) {
+                userProfileData = JSON.parse(saved);
+                // Fill Profile Page
+                document.getElementById('prof-name').value = userProfileData.name;
+                document.getElementById('prof-tel').value = userProfileData.tel;
+                document.getElementById('prof-address').value = userProfileData.address;
+            } else {
+                // If no local, try fetch from GAS (Optional, for first time on new device)
+                // For now, we rely on local storage for speed
             }
         }
 
-        // --- FETCH DATA ---
-        function fetchProducts() {
-            fetch(GAS_URL)
-                .then(res => res.json())
-                .then(data => {
-                    allProducts = data;
-                    setupCategories(data);
-                    renderProducts(data);
-                });
-        }
-
-        // ดึงข้อมูลลูกค้าเก่า
-        function fetchUserData(uid) {
-            // ส่ง parameter action=get_user ไป
-            fetch(`${GAS_URL}?action=get_user&uid=${uid}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.found) {
-                        document.getElementById('name').value = data.name;
-                        document.getElementById('tel').value = data.telephone;
-                        document.getElementById('address').value = data.address;
-                        // แจ้งเตือนเล็กน้อยว่าดึงข้อมูลมาแล้ว
-                        const btn = document.getElementById('submitBtn');
-                        const originalText = btn.innerHTML;
-                        // อาจจะทำ Toast notification ก็ได้
-                    }
-                });
-        }
-
-        // --- CATEGORIES ---
-        function setupCategories(products) {
-            const categories = [...new Set(products.map(p => p.category))]; // หา category ที่ไม่ซ้ำ
-            const container = document.getElementById('category-container');
+        function saveProfile() {
+            const name = document.getElementById('prof-name').value;
+            const tel = document.getElementById('prof-tel').value;
+            const address = document.getElementById('prof-address').value;
             
+            userProfileData = { name, tel, address };
+            localStorage.setItem('mk_profile', JSON.stringify(userProfileData));
+            
+            alert('บันทึกข้อมูลเรียบร้อย!');
+        }
+
+        // --- HISTORY LOGIC ---
+        function fetchHistory() {
+            const container = document.getElementById('history-list');
+            
+            fetch(`${GAS_URL}?action=get_history&uid=${userLineUid}`)
+                .then(res => res.json())
+                .then(data => {
+                    container.innerHTML = "";
+                    if (data.length === 0) {
+                        container.innerHTML = `<div class="text-center mt-10"><i class="fas fa-receipt text-4xl text-gray-300 mb-2"></i><p class="text-gray-400">ยังไม่มีประวัติการสั่งซื้อ</p></div>`;
+                        return;
+                    }
+                    
+                    data.forEach(order => {
+                        // ไม่ต้อง JSON.parse แล้ว เพราะเราส่ง Text มา
+                        // หรือถ้า Backend ส่งมาแบบ Mock JSON ก็ใช้โค้ดเดิมได้
+                        // แต่เพื่อความชัวร์ ให้แสดงผลแบบนี้ครับ:
+                        
+                        // เช็คว่า items เป็น JSON string หรือ Plain Text
+                        let itemsDisplay = "";
+                        if (order.items.startsWith("[")) {
+                            // กรณีเป็น JSON (เผื่ออนาคตแก้ระบบ)
+                            try {
+                                const items = JSON.parse(order.items);
+                                itemsDisplay = `<p class="text-xs text-gray-500">${items.length} รายการ</p>`;
+                            } catch(e) { itemsDisplay = `<p class="text-xs text-gray-500">${order.items}</p>`; }
+                        } else {
+                            // กรณีเป็น Text (แบบปัจจุบัน)
+                            // ตัดคำให้สั้นลงถ้ามันยาวเกิน
+                            let text = order.items;
+                            if(text.length > 50) text = text.substring(0, 50) + "...";
+                            itemsDisplay = `<p class="text-xs text-gray-500">${text}</p>`;
+                        }
+                    
+                        // Status Color (เหมือนเดิม)
+                        let statusColor = "bg-gray-100 text-gray-600";
+                        if (order.status.includes('เสร็จ') || order.status.includes('ส่ง')) statusColor = "bg-green-100 text-green-600";
+                        if (order.status.includes('ยกเลิก')) statusColor = "bg-red-100 text-red-600";
+                        if (order.status.includes('รอ')) statusColor = "bg-yellow-100 text-yellow-700";
+                    
+                        const html = `
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div>
+                                        <p class="text-xs text-gray-400">Order #${order.orderId.substring(0,8).toUpperCase()}</p>
+                                        <p class="text-sm font-bold text-gray-800">${order.date}</p>
+                                    </div>
+                                    <span class="px-2 py-1 rounded text-xs font-bold ${statusColor}">${order.status}</span>
+                                </div>
+                                ${itemsDisplay}
+                            </div>
+                        `;
+                        container.innerHTML += html;
+                    });
+                });
+        }
+
+        // --- CHECKOUT AUTO-FILL ---
+        function openCheckoutModal() {
+            document.getElementById('checkout-modal').classList.remove('hidden');
+            
+            // Auto-fill from Profile Data
+            if(userProfileData.name) document.getElementById('checkout-name').value = userProfileData.name;
+            if(userProfileData.tel) document.getElementById('checkout-tel').value = userProfileData.tel;
+            if(userProfileData.address) document.getElementById('checkout-address').value = userProfileData.address;
+        }
+
+        // --- SEARCH & PRODUCTS (Existing logic adapted) ---
+        function searchProduct(keyword) {
+            if (!keyword) {
+                renderProducts(allProducts);
+                return;
+            }
+            const filtered = allProducts.filter(p => p.name.toLowerCase().includes(keyword.toLowerCase()));
+            renderProducts(filtered);
+        }
+
+        // ... (Functions: fetchProducts, setupCategories, renderProducts, Cart Logic, Map Logic -> KEEP SAME AS BEFORE) ...
+        // Note: Copy the Map Logic & Cart Logic from previous code here.
+        // Important: Update 'renderProducts' to target 'product-list' inside page-home
+        
+        function fetchProducts() {
+             fetch(GAS_URL).then(res => res.json()).then(data => {
+                allProducts = data;
+                setupCategories(data);
+                renderProducts(data);
+             });
+        }
+        
+        function setupCategories(products) {
+            const categories = [...new Set(products.map(p => p.category))];
+            const container = document.getElementById('category-container');
+            container.innerHTML = '<button onclick="filterCategory(\'all\', this)" class="category-btn active whitespace-nowrap px-4 py-1 rounded-full border border-gray-300 text-sm text-gray-600 transition mx-1">ทั้งหมด</button>';
             categories.forEach(cat => {
                 if(!cat) return;
                 const btn = document.createElement('button');
@@ -183,189 +361,96 @@
                 container.appendChild(btn);
             });
         }
-
+        
         function filterCategory(cat, btnElement) {
-            // Toggle Active Class
             document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active', 'border-mk-red', 'text-white'));
-            
-            if (btnElement) {
-                btnElement.classList.add('active'); // CSS จะจัดการสีแดงให้
-            } else {
-                // ปุ่ม "ทั้งหมด"
-                document.querySelector('.category-btn').classList.add('active');
-            }
-
-            if (cat === 'all') {
-                renderProducts(allProducts);
-            } else {
-                const filtered = allProducts.filter(p => p.category === cat);
-                renderProducts(filtered);
-            }
+            btnElement.classList.add('active');
+            if (cat === 'all') renderProducts(allProducts);
+            else renderProducts(allProducts.filter(p => p.category === cat));
         }
 
-        // --- RENDER ---
         function renderProducts(products) {
             const container = document.getElementById('product-list');
             container.innerHTML = "";
-            
             products.forEach(p => {
                 const html = `
-                    <div class="bg-white rounded-xl shadow-sm overflow-hidden flex flex-col fade-in relative border border-transparent hover:border-red-100 transition">
-                        <div class="h-32 w-full relative bg-gray-100">
-                            <img src="${p.image}" class="w-full h-full object-cover" alt="${p.name}" loading="lazy">
-                        </div>
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden flex flex-col border border-transparent hover:border-red-100 transition">
+                        <div class="h-32 w-full relative bg-gray-100"><img src="${p.image}" class="w-full h-full object-cover" loading="lazy"></div>
                         <div class="p-3 flex flex-col flex-grow">
                             <h3 class="font-bold text-gray-800 text-sm line-clamp-1">${p.name}</h3>
                             <p class="text-xs text-gray-500 mb-2">${p.category || ''}</p>
                             <div class="mt-auto flex justify-between items-center">
                                 <span class="font-bold text-mk-red">${p.price}.-</span>
-                                <button onclick="addToCart('${p.id}')" class="bg-red-50 text-mk-red hover:bg-mk-red hover:text-white w-8 h-8 rounded-full flex items-center justify-center transition shadow-sm border border-red-100">
-                                    <i class="fas fa-plus text-xs"></i>
-                                </button>
+                                <button onclick="addToCart('${p.id}')" class="bg-red-50 text-mk-red w-8 h-8 rounded-full flex items-center justify-center border border-red-100"><i class="fas fa-plus text-xs"></i></button>
                             </div>
-                        </div>
-                    </div>
-                `;
-                container.innerHTML += html;
-            });
-        }
-
-        // --- GPS LOCATION ---
-        function getLocation() {
-            const status = document.getElementById('location-status');
-            const addrInput = document.getElementById('address');
-            
-            if (!navigator.geolocation) {
-                status.innerText = "เบราว์เซอร์ไม่รองรับ GPS";
-                return;
-            }
-
-            status.innerText = "กำลังค้นหาพิกัด...";
-            
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const lat = position.coords.latitude;
-                    const long = position.coords.longitude;
-                    const mapsLink = `https://www.google.com/maps?q=${lat},${long}`;
-                    
-                    // เติมลิงก์ลงในช่องที่อยู่ (หรือต่อท้าย)
-                    if(addrInput.value) {
-                         addrInput.value += `\n(พิกัด: ${mapsLink})`;
-                    } else {
-                         addrInput.value = `(พิกัด: ${mapsLink})`;
-                    }
-                    status.innerText = "ระบุพิกัดสำเร็จ!";
-                    status.className = "text-xs text-green-600 ml-1";
-                },
-                (error) => {
-                    status.innerText = "ไม่สามารถระบุตำแหน่งได้";
-                    status.className = "text-xs text-red-500 ml-1";
-                    console.error(error);
-                }
-            );
-        }
-
-        // --- CART & MODAL LOGIC (เหมือนเดิม แต่ปรับสี) ---
-        function addToCart(id) {
-            const product = allProducts.find(p => p.id == id);
-            if (cart[id]) cart[id].quantity++;
-            else cart[id] = { ...product, quantity: 1 };
-            updateCartUI();
-        }
-
-        function removeFromCart(id) {
-            if (cart[id]) {
-                cart[id].quantity--;
-                if (cart[id].quantity <= 0) delete cart[id];
-            }
-            updateCartUI();
-        }
-
-        function updateCartUI() {
-            const items = Object.values(cart);
-            const totalQty = items.reduce((sum, item) => sum + item.quantity, 0);
-            const totalPrice = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-            document.getElementById('cart-count').innerText = totalQty;
-            document.getElementById('cart-total').innerText = totalPrice.toLocaleString() + ' ฿';
-            document.getElementById('final-total').innerText = totalPrice.toLocaleString() + ' ฿';
-
-            const cartBar = document.getElementById('cart-bar');
-            if (totalQty > 0) cartBar.classList.remove('hidden', 'translate-y-full');
-            else {
-                cartBar.classList.add('translate-y-full');
-                closeCheckoutModal();
-            }
-            renderCartModalItems();
-        }
-
-        function openCheckoutModal() {
-            document.getElementById('checkout-modal').classList.remove('hidden');
-            document.body.classList.add('modal-open');
-        }
-
-        function closeCheckoutModal() {
-            document.getElementById('checkout-modal').classList.add('hidden');
-            document.body.classList.remove('modal-open');
-        }
-
-        function renderCartModalItems() {
-            const container = document.getElementById('cart-items-container');
-            container.innerHTML = "";
-            Object.values(cart).forEach(item => {
-                const html = `
-                    <div class="flex items-center justify-between bg-white border-b pb-3 last:border-0">
-                        <div class="flex items-center space-x-3">
-                            <div class="bg-gray-100 rounded-lg h-12 w-12 flex-shrink-0 overflow-hidden">
-                                <img src="${item.image}" class="h-full w-full object-cover">
-                            </div>
-                            <div>
-                                <p class="font-bold text-sm text-gray-800">${item.name}</p>
-                                <p class="text-xs text-gray-500">${item.price} x ${item.quantity} = ${(item.price * item.quantity).toLocaleString()}</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center space-x-3 bg-gray-50 rounded-lg p-1">
-                            <button onclick="removeFromCart('${item.id}')" class="w-7 h-7 bg-white rounded shadow text-mk-red flex items-center justify-center active:scale-95"><i class="fas fa-minus text-xs"></i></button>
-                            <span class="text-sm font-bold w-4 text-center">${item.quantity}</span>
-                            <button onclick="addToCart('${item.id}')" class="w-7 h-7 bg-mk-red rounded shadow text-white flex items-center justify-center active:scale-95"><i class="fas fa-plus text-xs"></i></button>
                         </div>
                     </div>`;
                 container.innerHTML += html;
             });
         }
+        
+        function addToCart(id) {
+            const product = allProducts.find(p => p.id == id);
+            if (cart[id]) cart[id].quantity++; else cart[id] = { ...product, quantity: 1 };
+            updateCartUI();
+        }
+        
+        function updateCartUI() {
+            const items = Object.values(cart);
+            const totalQty = items.reduce((sum, item) => sum + item.quantity, 0);
+            const totalPrice = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            document.getElementById('cart-count').innerText = totalQty;
+            document.getElementById('cart-total').innerText = totalPrice.toLocaleString() + ' ฿';
+            document.getElementById('final-total').innerText = totalPrice.toLocaleString() + ' ฿';
+            
+            const cartBar = document.getElementById('cart-bar');
+            if (totalQty > 0) cartBar.classList.remove('hidden', 'translate-y-20');
+            else { cartBar.classList.add('translate-y-20'); closeCheckoutModal(); }
+            
+            renderCartModalItems();
+        }
+        
+        function closeCheckoutModal() { document.getElementById('checkout-modal').classList.add('hidden'); }
+        function renderCartModalItems() { /* ... Copy from previous ... */ 
+             const container = document.getElementById('cart-items-container');
+             container.innerHTML = "";
+             Object.values(cart).forEach(item => {
+                 container.innerHTML += `<div class="flex justify-between border-b pb-2"><div>${item.name} <span class="text-xs text-gray-500">x${item.quantity}</span></div><div>${(item.price*item.quantity).toLocaleString()}</div></div>`;
+             });
+        }
 
-        function previewSlip(input) {
-            const box = document.getElementById('slip-preview-box');
-            const img = document.getElementById('slip-img');
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    img.src = e.target.result;
-                    img.classList.remove('hidden');
-                    box.classList.add('hidden');
-                }
-                reader.readAsDataURL(input.files[0]);
+        // --- MAP LOGIC ---
+        function openMapModal() {
+             document.getElementById('map-modal').classList.remove('hidden');
+             if (!map) {
+                map = L.map('map').setView([13.7563, 100.5018], 15);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                panToCurrentLocation();
+             } else { setTimeout(() => { map.invalidateSize(); }, 100); }
+        }
+        function closeMapModal() { document.getElementById('map-modal').classList.add('hidden'); }
+        function panToCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(p => map.setView([p.coords.latitude, p.coords.longitude], 17));
             }
+        }
+        function confirmLocation() {
+            const c = map.getCenter();
+            document.getElementById('checkout-address').value += ` (พิกัด: ${c.lat.toFixed(5)},${c.lng.toFixed(5)})`;
+            closeMapModal();
         }
 
         // --- SUBMIT ---
         document.getElementById('orderForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!userLineUid) return alert("ไม่พบข้อมูล LINE");
-
             const btn = document.getElementById('submitBtn');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> กำลังส่ง...';
-            btn.disabled = true;
-
-            const name = document.getElementById('name').value;
-            const tel = document.getElementById('tel').value;
-            const address = document.getElementById('address').value;
-            const fileInput = document.getElementById('slip');
+            btn.innerHTML = 'Sending...'; btn.disabled = true;
             
+            // Convert Slip
+            const fileInput = document.getElementById('slip');
             let base64Image = "";
             if (fileInput.files.length > 0) {
-                base64Image = await new Promise(resolve => {
+                 base64Image = await new Promise(resolve => {
                     const reader = new FileReader();
                     reader.onload = () => resolve(reader.result);
                     reader.readAsDataURL(fileInput.files[0]);
@@ -373,17 +458,22 @@
             }
 
             const itemsArray = Object.values(cart);
-            const totalPrice = itemsArray.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
+            const total = itemsArray.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            
             const payload = {
                 lineUid: userLineUid,
-                name: name,
-                telephone: tel,
-                address: address,
+                name: document.getElementById('checkout-name').value,
+                telephone: document.getElementById('checkout-tel').value,
+                address: document.getElementById('checkout-address').value,
                 image: base64Image,
                 orderDetails: itemsArray,
-                totalPrice: totalPrice
+                totalPrice: total
             };
+            
+            // Save Profile Automatically on Order
+            localStorage.setItem('mk_profile', JSON.stringify({
+                name: payload.name, tel: payload.telephone, address: payload.address
+            }));
 
             fetch(GAS_URL, {
                 method: 'POST',
@@ -391,14 +481,9 @@
                 headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify(payload)
             }).then(() => {
-                alert("✅ สั่งซื้อสำเร็จ!");
+                alert("สั่งซื้อสำเร็จ!");
                 liff.closeWindow();
-            }).catch(err => {
-                console.error(err);
-                alert("เกิดข้อผิดพลาด");
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            });
+            }).catch(() => { alert("Error"); btn.disabled = false; });
         });
 
         main();
