@@ -14,45 +14,26 @@
         @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap');
         body { font-family: 'Prompt', sans-serif; background-color: #F8F9FA; padding-bottom: 0; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
         
-        /* MK Theme */
         .bg-mk-red { background-color: #ce1126; }
         .text-mk-red { color: #ce1126; }
-        .border-mk-red { border-color: #ce1126; }
         
-        /* Page Navigation System */
-        .page { 
-            display: none; 
-            width: 100%; 
-            min-height: 100vh; 
-            background: #F8F9FA;
-            padding-bottom: 80px; 
-            animation: fadeIn 0.2s ease-out;
-        }
-        
-        /* แก้ไข: บังคับให้ active แสดงผลแน่นอน และ Full screen ทับทุกอย่าง */
+        .page { display: none; width: 100%; min-height: 100vh; background: #F8F9FA; padding-bottom: 80px; animation: fadeIn 0.2s ease-out; }
         .page.active { display: block !important; }
-        .page.full-screen { 
-            padding-bottom: 0; 
-            z-index: 999; /* เพิ่ม Layer ให้สูงขึ้น */
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            overflow-y: auto; 
-            height: 100%; 
-            background-color: white;
-        }
+        .page.full-screen { padding-bottom: 0; z-index: 999; position: fixed; top: 0; left: 0; overflow-y: auto; height: 100%; background-color: white; }
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Utilities */
         .hide-scroll::-webkit-scrollbar { display: none; }
         .category-btn.active { background-color: #ce1126; color: white; border-color: #ce1126; }
         .nav-item.active-tab { color: #ce1126; }
         .nav-item.inactive-tab { color: #9CA3AF; }
 
-        /* Map */
         #map { height: 100%; width: 100%; }
         .center-pin { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); z-index: 1000; pointer-events: none; }
+        
+        /* Badge Animation */
+        .badge-pop { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes pop { 0% { transform: scale(0); } 90% { transform: scale(1.2); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
@@ -60,9 +41,20 @@
     <section id="page-home" class="page active">
         <div class="bg-white sticky top-0 z-10 shadow-sm pb-2">
             <div class="p-4 flex justify-between items-center bg-mk-red text-white">
-                <div><h1 class="text-lg font-bold">MK Delivery</h1></div>
-                <div id="user-profile-icon"></div>
+                <div class="flex items-center space-x-2">
+                    <div id="user-profile-icon" class="w-8 h-8 rounded-full border border-white bg-gray-200"></div>
+                    <div>
+                        <h1 class="text-sm font-bold leading-tight">MK Delivery</h1>
+                        <p class="text-[10px] opacity-90">สวัสดี, <span id="header-name">Guest</span></p>
+                    </div>
+                </div>
+                
+                <button onclick="openCheckoutModal()" class="relative p-2">
+                    <i class="fas fa-shopping-basket text-xl"></i>
+                    <span id="header-cart-badge" class="absolute top-0 right-0 bg-yellow-400 text-red-600 text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full hidden shadow-sm">0</span>
+                </button>
             </div>
+
             <div class="px-4 mt-[-15px]">
                 <div class="bg-white rounded-lg shadow-md p-2 flex items-center border">
                     <i class="fas fa-search text-gray-400 ml-2"></i>
@@ -88,7 +80,7 @@
 
     <section id="page-profile" class="page">
         <div class="bg-mk-red p-6 text-white text-center rounded-b-3xl shadow-md">
-            <div id="profile-img-large" class="w-20 h-20 bg-white rounded-full mx-auto border-4 border-white shadow-lg overflow-hidden"></div>
+            <div id="profile-img-large" class="w-20 h-20 bg-white rounded-full mx-auto border-4 border-white shadow-lg overflow-hidden bg-gray-200"></div>
             <h2 id="profile-name" class="text-xl font-bold mt-3">Guest</h2>
         </div>
         <div class="p-4 -mt-4">
@@ -105,8 +97,8 @@
     <section id="page-ai" class="page">
         <div class="bg-mk-red p-6 text-white text-center rounded-b-3xl shadow-md pb-10">
             <i class="fas fa-magic text-4xl mb-2 text-yellow-300"></i>
-            <h2 class="text-2xl font-bold">ให้ AI ช่วยเลือกไหม?</h2>
-            <p class="text-sm opacity-90">บอกงบ หรือ แคลอรี่ที่ต้องการ เดี๋ยวจัดให้!</p>
+            <h2 class="text-2xl font-bold">AI จัดเซตสุดคุ้ม</h2>
+            <p class="text-sm opacity-90">เลือกงบ หรือ แคลอรี่ ให้เราช่วยคิด</p>
         </div>
         <div class="p-4 -mt-8">
             <div class="bg-white rounded-xl shadow-lg p-5 space-y-4">
@@ -127,30 +119,28 @@
                     <i class="fas fa-wand-magic-sparkles mr-2"></i>เริ่มจัดเซต
                 </button>
             </div>
+            
             <div id="ai-result" class="mt-6 hidden animate-slide-up">
                 <h3 class="font-bold text-gray-700 mb-3 flex justify-between items-center">
-                    <span>✨ เซตแนะนำสำหรับคุณ</span>
-                    <button onclick="generateAiSet()" class="text-xs text-mk-red bg-red-50 px-2 py-1 rounded"><i class="fas fa-sync-alt mr-1"></i>เปลี่ยนชุด</button>
+                    <span>✨ เซตแนะนำ</span>
+                    <button onclick="generateAiSet()" class="text-xs text-mk-red bg-red-50 px-2 py-1 rounded"><i class="fas fa-sync-alt mr-1"></i>เปลี่ยน</button>
                 </h3>
-                <div class="bg-white rounded-xl shadow border border-red-100 overflow-hidden relative">
+                <div class="bg-white rounded-xl shadow border border-red-100 overflow-hidden relative mb-4">
                     <div class="absolute top-0 left-0 bg-yellow-400 text-red-900 text-xs font-bold px-3 py-1 rounded-br-lg z-10">คุ้มค่า!</div>
                     <div id="ai-items-list" class="divide-y"></div>
                     <div class="bg-red-50 p-4 flex justify-between items-center">
                         <div>
-                            <p class="text-xs text-gray-500">ราคารวม</p>
+                            <p class="text-xs text-gray-500">รวม</p>
                             <p class="text-xl font-bold text-mk-red" id="ai-total-price">0 ฿</p>
                         </div>
-                        <div class="text-right mr-4">
-                            <p class="text-xs text-gray-500">พลังงานรวม</p>
-                            <p class="text-sm font-bold text-orange-600" id="ai-total-kcal">0 Kcal</p>
-                        </div>
                         <button onclick="addAiSetToCart()" class="bg-mk-red text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-red-800">
-                            เหมาเซตนี้
+                            ใส่ตะกร้า
                         </button>
                     </div>
                 </div>
-                <div id="ai-similar" class="mt-6 hidden">
-                    <h3 class="font-bold text-gray-700 mb-3 text-sm">💡 ตัวเลือกอื่นๆ ที่คล้ายกัน</h3>
+                
+                <div id="ai-similar" class="hidden">
+                    <h3 class="font-bold text-gray-700 mb-3 text-sm">💡 เมนูใกล้เคียง (เปลี่ยนได้)</h3>
                     <div id="ai-similar-list" class="space-y-2"></div>
                 </div>
             </div>
@@ -173,8 +163,8 @@
             <p id="detail-price" class="text-3xl font-bold text-mk-red mb-6">0 ฿</p>
 
             <div class="mb-6">
-                <label class="font-bold text-gray-700 block mb-2"><i class="far fa-comment-dots mr-2"></i>หมายเหตุ / คำสั่งพิเศษ</label>
-                <textarea id="detail-note" class="w-full bg-gray-50 border rounded-lg p-3 outline-none focus:ring-1 focus:ring-red-500" rows="2" placeholder="เช่น ไม่ใส่ผัก, เผ็ดน้อย"></textarea>
+                <label class="font-bold text-gray-700 block mb-2"><i class="far fa-comment-dots mr-2"></i>หมายเหตุ</label>
+                <textarea id="detail-note" class="w-full bg-gray-50 border rounded-lg p-3 outline-none focus:ring-1 focus:ring-red-500" rows="2" placeholder="เช่น ไม่ใส่ผัก"></textarea>
             </div>
 
             <div class="fixed bottom-0 left-0 w-full bg-white border-t p-4 shadow-lg flex items-center justify-between">
@@ -201,10 +191,8 @@
                 <span id="hist-detail-date" class="text-sm text-gray-500">Date</span>
             </div>
             <div id="hist-detail-status-box" class="text-center p-2 rounded-lg bg-gray-100 font-bold mb-6">Status</div>
-            
             <h3 class="font-bold text-gray-800 mb-2 border-b pb-2">รายการสินค้า</h3>
             <div id="hist-detail-items" class="space-y-3 mb-6"></div>
-
             <div class="flex justify-between items-center text-xl font-bold border-t pt-4">
                 <span>ยอดรวมสุทธิ</span>
                 <span id="hist-detail-total" class="text-mk-red">0 ฿</span>
@@ -212,24 +200,19 @@
         </div>
     </section>
 
-    <div id="cart-bar" class="fixed bottom-[70px] left-4 right-4 z-30 hidden transform transition-transform duration-300 translate-y-32">
-        <div onclick="openCheckoutModal()" class="bg-mk-red text-white rounded-xl p-3 flex justify-between items-center shadow-2xl cursor-pointer hover:bg-red-800 transition">
-            <div class="flex items-center space-x-3">
-                <div class="bg-white text-mk-red font-bold rounded-full w-8 h-8 flex items-center justify-center text-sm" id="cart-count">0</div>
-                <span class="font-medium">ตะกร้า</span>
-            </div>
-            <span class="font-bold text-lg" id="cart-total">0 ฿</span>
-        </div>
-    </div>
-
     <div id="checkout-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex items-end justify-center">
         <div class="bg-white w-full h-[95vh] rounded-t-3xl p-6 overflow-y-auto pb-20 animate-slide-up relative">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold">สรุปรายการ</h2>
+                <h2 class="text-2xl font-bold">ตะกร้าสินค้า</h2>
                 <button onclick="closeCheckoutModal()" class="text-gray-400"><i class="fas fa-times fa-lg"></i></button>
             </div>
             <div id="cart-items-container" class="space-y-4 mb-6"></div>
-            <div class="border-t border-dashed my-4"></div>
+            
+            <div class="flex justify-between items-center border-t border-b py-3 mb-4">
+                <span class="font-bold text-gray-700">ยอดรวมทั้งหมด</span>
+                <span id="cart-total-modal" class="font-bold text-xl text-mk-red">0 ฿</span>
+            </div>
+
             <form id="orderForm" class="space-y-4">
                 <h3 class="font-bold text-gray-700">📍 จัดส่งที่</h3>
                 <input type="text" id="checkout-name" placeholder="ชื่อ" class="w-full border p-3 rounded-lg" required>
@@ -240,8 +223,8 @@
                 </div>
                 <h3 class="font-bold text-gray-700 mt-4">📸 สลิปโอนเงิน</h3>
                 <input type="file" id="slip" accept="image/*" class="w-full" required>
-                <button type="submit" id="submitBtn" class="w-full bg-mk-red text-white font-bold py-3 rounded-xl shadow-lg mt-6 flex justify-between px-6">
-                    <span>ยืนยันสั่งซื้อ</span><span id="final-total">0 ฿</span>
+                <button type="submit" id="submitBtn" class="w-full bg-mk-red text-white font-bold py-3 rounded-xl shadow-lg mt-6">
+                    ยืนยันสั่งซื้อ
                 </button>
             </form>
         </div>
@@ -297,9 +280,10 @@
         }
 
         function setupProfileUI(profile) {
-            document.getElementById('user-profile-icon').innerHTML = `<img src="${profile.pictureUrl}" class="w-8 h-8 rounded-full border border-white">`;
+            document.getElementById('user-profile-icon').innerHTML = `<img src="${profile.pictureUrl}" class="w-full h-full object-cover rounded-full">`;
             document.getElementById('profile-img-large').innerHTML = `<img src="${profile.pictureUrl}" class="w-full h-full object-cover">`;
             document.getElementById('profile-name').innerText = profile.displayName;
+            document.getElementById('header-name').innerText = profile.displayName;
         }
 
         // --- NAVIGATION ---
@@ -319,15 +303,11 @@
             document.getElementById(`tab-${pageId}`).classList.remove('inactive-tab');
             
             document.getElementById(`page-${pageId}`).classList.add('active');
-
             if(pageId === 'home') updateCartUI();
-            else document.getElementById('cart-bar').classList.add('translate-y-32');
-
             if(pageId === 'history') fetchHistory();
         }
 
         function goBack() {
-            // แก้ไข: ปิดหน้า Full Screen ทั้งหมด โดยการลบ class active และเติม hidden
             document.querySelectorAll('.full-screen').forEach(el => {
                 el.classList.remove('active');
                 el.classList.add('hidden');
@@ -387,12 +367,9 @@
             document.getElementById('detail-qty').innerText = "1";
             document.getElementById('detail-note').value = "";
             
-            // แก้ไข: แสดงหน้า Detail โดยการใส่ class active
             const page = document.getElementById('page-product-detail');
             page.classList.remove('hidden');
             page.classList.add('active');
-            
-            document.getElementById('cart-bar').classList.add('translate-y-32');
         }
 
         function adjustDetailQty(delta) {
@@ -416,7 +393,58 @@
             updateCartUI();
         }
 
-        // --- HISTORY ---
+        // --- CART SYSTEM (UPDATED: Top Icon) ---
+        function updateCartUI() {
+            const items = Object.values(cart);
+            const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
+            const totalPrice = items.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+            
+            // อัปเดตไอคอนตะกร้าด้านบน
+            const badge = document.getElementById('header-cart-badge');
+            if (totalQty > 0) {
+                badge.innerText = totalQty;
+                badge.classList.remove('hidden');
+                badge.classList.add('badge-pop'); // Animation
+                setTimeout(() => badge.classList.remove('badge-pop'), 300);
+            } else {
+                badge.classList.add('hidden');
+            }
+
+            document.getElementById('cart-total-modal').innerText = totalPrice.toLocaleString() + ' ฿';
+            renderCartItems();
+        }
+
+        function renderCartItems() {
+            const container = document.getElementById('cart-items-container');
+            container.innerHTML = "";
+            if (Object.keys(cart).length === 0) {
+                container.innerHTML = "<p class='text-center text-gray-400 py-4'>ไม่มีสินค้าในตะกร้า</p>";
+                return;
+            }
+            Object.values(cart).forEach(item => {
+                const noteHtml = item.note ? `<p class="text-xs text-mk-red"><i class="far fa-edit"></i> ${item.note}</p>` : '';
+                container.innerHTML += `
+                    <div class="flex justify-between border-b pb-3 mb-3 last:border-0 last:mb-0 last:pb-0">
+                        <div class="flex space-x-3">
+                            <img src="${item.image}" class="w-12 h-12 rounded object-cover bg-gray-100">
+                            <div><p class="font-bold text-sm text-gray-800">${item.name}</p><p class="text-xs text-gray-500">${item.price} x ${item.quantity}</p>${noteHtml}</div>
+                        </div>
+                        <div class="font-bold text-sm self-center">${(item.price * item.quantity).toLocaleString()}</div>
+                        <button onclick="removeFromCart('${item.id}')" class="text-gray-400 self-center ml-2"><i class="fas fa-trash"></i></button>
+                    </div>`;
+            });
+        }
+        function removeFromCart(id) { delete cart[id]; updateCartUI(); }
+        function openCheckoutModal() { 
+            document.getElementById('checkout-modal').classList.remove('hidden'); 
+            if(userProfileData.name) document.getElementById('checkout-name').value = userProfileData.name; 
+            if(userProfileData.tel) document.getElementById('checkout-tel').value = userProfileData.tel; 
+            if(userProfileData.address) document.getElementById('checkout-address').value = userProfileData.address; 
+            updateCartUI(); // Refresh totals
+        }
+        function closeCheckoutModal() { document.getElementById('checkout-modal').classList.add('hidden'); }
+
+        // --- HISTORY (UPDATED: Price Calc Fix) ---
         function fetchHistory() {
             const list = document.getElementById('history-list');
             list.innerHTML = '<p class="text-center text-gray-400 mt-10">กำลังโหลด...</p>';
@@ -426,8 +454,12 @@
                     list.innerHTML = "";
                     if(data.length===0) { list.innerHTML = `<div class="text-center mt-10 text-gray-400">ยังไม่มีประวัติ</div>`; return; }
                     data.forEach(order => {
-                        let items = []; try { items = JSON.parse(order.items); } catch(e){ items=[{name:order.items,quantity:1,price:0}]; }
-                        const total = items.reduce((sum,i)=>sum+(i.price*i.quantity),0);
+                        let items = []; 
+                        try { items = JSON.parse(order.items); if(!Array.isArray(items)) items=[items]; } catch(e){ items=[]; }
+                        
+                        // FIX: คำนวณราคาให้แม่นยำขึ้น โดยแปลงเป็น Number
+                        const total = items.reduce((sum,i)=>sum+(Number(i.price||0)*Number(i.quantity||1)),0);
+                        
                         const safeData = encodeURIComponent(JSON.stringify({...order, items, total}));
                         let stColor = "bg-gray-100 text-gray-600";
                         if(order.status.includes('รอ')) stColor="bg-yellow-100 text-yellow-700";
@@ -458,69 +490,91 @@
                 cont.innerHTML += `
                     <div class="flex justify-between text-sm border-b pb-2 last:border-0">
                         <span class="text-gray-700 w-2/3">${i.name} <span class="text-xs text-gray-400">x${i.quantity}</span></span>
-                        <span class="font-medium">${(i.price*i.quantity).toLocaleString()}</span>
+                        <span class="font-medium">${(Number(i.price)*Number(i.quantity)).toLocaleString()}</span>
                     </div>`;
             });
-            
-            // แก้ไข: แสดงหน้า History Detail โดยใส่ class active
             const page = document.getElementById('page-history-detail');
             page.classList.remove('hidden');
             page.classList.add('active');
         }
 
-        // --- CART UI ---
-        function updateCartUI() {
-            const items = Object.values(cart);
-            const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
-            const totalPrice = items.reduce((sum, i) => sum + (i.price * i.quantity), 0);
-            document.getElementById('cart-count').innerText = totalQty;
-            document.getElementById('cart-total').innerText = totalPrice.toLocaleString() + ' ฿';
-            document.getElementById('final-total').innerText = totalPrice.toLocaleString() + ' ฿';
-            const bar = document.getElementById('cart-bar');
-            if (totalQty > 0 && document.getElementById('page-home').classList.contains('active')) {
-                bar.classList.remove('translate-y-32');
-            } else {
-                bar.classList.add('translate-y-32');
-            }
-            renderCartItems();
+        // --- AI LOGIC (UPDATED: Similar Items Fix) ---
+        function generateAiSet() { 
+            const limit = parseInt(document.getElementById('ai-value').value); 
+            const listContainer = document.getElementById('ai-items-list'); 
+            const mains = allProducts.filter(p => !p.category.includes('น้ำ') && !p.category.includes('เครื่องดื่ม') && !p.category.includes('หวาน')); 
+            const drinks = allProducts.filter(p => p.category.includes('น้ำ') || p.category.includes('เครื่องดื่ม')); 
+            const desserts = allProducts.filter(p => p.category.includes('หวาน') || p.category.includes('ทานเล่น')); 
+            let bestSet = []; let attempts = 0; let found = false; 
+            while (attempts < 50 && !found) { 
+                let set = []; let currentTotal = 0; let currentKcal = 0; 
+                const rMain = mains[Math.floor(Math.random() * mains.length)]; 
+                if(rMain) { set.push(rMain); currentTotal += rMain.price; currentKcal += (rMain.kcal || 0); } 
+                if (drinks.length > 0 && Math.random() > 0.3) { const rDrink = drinks[Math.floor(Math.random() * drinks.length)]; set.push(rDrink); currentTotal += rDrink.price; currentKcal += (rDrink.kcal || 0); } 
+                if (desserts.length > 0 && Math.random() > 0.5) { const rDessert = desserts[Math.floor(Math.random() * desserts.length)]; set.push(rDessert); currentTotal += rDessert.price; currentKcal += (rDessert.kcal || 0); } 
+                if (aiMode === 'budget') { if (currentTotal <= limit && currentTotal > (limit * 0.5)) { bestSet = set; found = true; } } else { if (currentKcal <= limit && currentKcal > (limit * 0.6)) { bestSet = set; found = true; } } 
+                attempts++; 
+            } 
+            if (bestSet.length === 0) { alert("ไม่พบเซตที่ตรงเงื่อนไข"); return; } 
+            currentAiSet = bestSet; 
+            listContainer.innerHTML = ""; let tp = 0; let tk = 0; 
+            bestSet.forEach(p => { 
+                tp += p.price; tk += (p.kcal || 0); 
+                listContainer.innerHTML += `<div class="flex items-center p-3"><img src="${p.image}" class="w-12 h-12 rounded-lg object-cover bg-gray-100"><div class="ml-3 flex-grow"><p class="font-bold text-sm text-gray-800">${p.name}</p><p class="text-xs text-gray-500">${p.category} | ${p.kcal||0} Kcal</p></div><p class="font-bold text-mk-red">${p.price} ฿</p></div>`; 
+            }); 
+            document.getElementById('ai-total-price').innerText = tp + " ฿"; 
+            document.getElementById('ai-total-kcal').innerText = tk + " Kcal"; 
+            document.getElementById('ai-result').classList.remove('hidden'); 
+            
+            // FIX: Similar Items Logic
+            if(bestSet.length > 0) generateSimilarItems(bestSet[0]); 
         }
-        function renderCartItems() {
-            const container = document.getElementById('cart-items-container');
-            container.innerHTML = "";
-            Object.values(cart).forEach(item => {
-                const noteHtml = item.note ? `<p class="text-xs text-mk-red"><i class="far fa-edit"></i> ${item.note}</p>` : '';
-                container.innerHTML += `
-                    <div class="flex justify-between border-b pb-3 mb-3 last:border-0 last:mb-0 last:pb-0">
-                        <div class="flex space-x-3">
-                            <img src="${item.image}" class="w-12 h-12 rounded object-cover bg-gray-100">
-                            <div><p class="font-bold text-sm text-gray-800">${item.name}</p><p class="text-xs text-gray-500">${item.price} x ${item.quantity}</p>${noteHtml}</div>
+        
+        function generateSimilarItems(mainDish) {
+            const container = document.getElementById('ai-similar');
+            const list = document.getElementById('ai-similar-list');
+            if(!mainDish) return;
+            
+            // หาเมนูในหมวดเดียวกัน แต่ราคาใกล้เคียง (+- 20%)
+            const similars = allProducts
+                .filter(p => p.category === mainDish.category && p.id !== mainDish.id && Math.abs(p.price - mainDish.price) < 50)
+                .sort(() => 0.5 - Math.random())
+                .slice(0, 2);
+
+            if (similars.length === 0) { container.classList.add('hidden'); return; }
+
+            list.innerHTML = "";
+            similars.forEach(p => {
+                list.innerHTML += `
+                    <div onclick="replaceMainDish('${p.id}')" class="bg-white p-2 rounded border flex justify-between items-center cursor-pointer hover:bg-gray-50">
+                        <div class="flex items-center">
+                             <img src="${p.image}" class="w-8 h-8 rounded object-cover">
+                             <div class="ml-2">
+                                <span class="text-xs font-bold text-gray-700 block">${p.name}</span>
+                                <span class="text-[10px] text-gray-500">${p.price} ฿</span>
+                             </div>
                         </div>
-                        <div class="font-bold text-sm self-center">${(item.price * item.quantity).toLocaleString()}</div>
-                        <button onclick="removeFromCart('${item.id}')" class="text-gray-400 self-center ml-2"><i class="fas fa-trash"></i></button>
+                        <span class="text-xs text-mk-red font-bold">เลือก <i class="fas fa-check-circle"></i></span>
                     </div>`;
             });
+            container.classList.remove('hidden');
         }
-        function removeFromCart(id) { delete cart[id]; updateCartUI(); if(Object.keys(cart).length===0) closeCheckoutModal(); }
-        function openCheckoutModal() { document.getElementById('checkout-modal').classList.remove('hidden'); if(userProfileData.name) document.getElementById('checkout-name').value = userProfileData.name; if(userProfileData.tel) document.getElementById('checkout-tel').value = userProfileData.tel; if(userProfileData.address) document.getElementById('checkout-address').value = userProfileData.address; }
-        function closeCheckoutModal() { document.getElementById('checkout-modal').classList.add('hidden'); }
 
-        // --- UTILS (Map, AI, etc.) ---
-        function openMapModal() { document.getElementById('map-modal').classList.remove('hidden'); if(!map){map=L.map('map').setView([13.7563,100.5018],15);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);panToCurrentLocation();}else setTimeout(()=>map.invalidateSize(),100); }
-        function closeMapModal() { document.getElementById('map-modal').classList.add('hidden'); }
-        function panToCurrentLocation() { navigator.geolocation.getCurrentPosition(p=>map.setView([p.coords.latitude,p.coords.longitude],17)); }
-        function confirmLocation() { const c=map.getCenter(); document.getElementById('checkout-address').value += ` (พิกัด: ${c.lat.toFixed(5)},${c.lng.toFixed(5)})`; closeMapModal(); }
-        
+        // --- UTILS ---
+        function addAiSetToCart() { currentAiSet.forEach(p => { if (cart[p.id]) cart[p.id].quantity++; else cart[p.id] = { ...p, quantity: 1 }; }); updateCartUI(); alert(`เพิ่ม ${currentAiSet.length} รายการแล้ว!`); switchPage('home'); }
+        function replaceMainDish(newId) { const newMain = allProducts.find(p => p.id == newId); currentAiSet[0] = newMain; const listContainer = document.getElementById('ai-items-list'); listContainer.innerHTML = ""; let tp = 0; let tk = 0; currentAiSet.forEach(p => { tp += p.price; tk += (p.kcal || 0); listContainer.innerHTML += `<div class="flex items-center p-3"><img src="${p.image}" class="w-12 h-12 rounded-lg object-cover bg-gray-100"><div class="ml-3 flex-grow"><p class="font-bold text-sm text-gray-800">${p.name}</p><p class="text-xs text-gray-500">${p.category} | ${p.kcal||0} Kcal</p></div><p class="font-bold text-mk-red">${p.price} ฿</p></div>`; }); document.getElementById('ai-total-price').innerText = tp + " ฿"; document.getElementById('ai-total-kcal').innerText = tk + " Kcal"; }
         function setAiMode(mode) { aiMode = mode; const bB = document.getElementById('btn-mode-budget'); const bK = document.getElementById('btn-mode-kcal'); const lb = document.getElementById('ai-label'); const sl = document.getElementById('ai-slider'); const inp = document.getElementById('ai-value'); if (mode === 'budget') { bB.className = "flex-1 py-2 rounded-md text-sm font-bold bg-white shadow text-mk-red transition"; bK.className = "flex-1 py-2 rounded-md text-sm font-bold text-gray-500 transition"; lb.innerText = "งบประมาณไม่เกิน (บาท)"; sl.min = 50; sl.max = 1000; sl.value = 200; inp.value = 200; } else { bK.className = "flex-1 py-2 rounded-md text-sm font-bold bg-white shadow text-mk-red transition"; bB.className = "flex-1 py-2 rounded-md text-sm font-bold text-gray-500 transition"; lb.innerText = "พลังงานไม่เกิน (Kcal)"; sl.min = 200; sl.max = 1500; sl.value = 500; inp.value = 500; } }
         function adjustAiValue(d) { const i = document.getElementById('ai-value'); const s = document.getElementById('ai-slider'); let v = parseInt(i.value) + d; i.value = v; s.value = v; }
         function syncAiValue(v) { document.getElementById('ai-value').value = v; }
-        function generateAiSet() { const limit = parseInt(document.getElementById('ai-value').value); const listContainer = document.getElementById('ai-items-list'); const mains = allProducts.filter(p => !p.category.includes('น้ำ') && !p.category.includes('เครื่องดื่ม') && !p.category.includes('หวาน')); const drinks = allProducts.filter(p => p.category.includes('น้ำ') || p.category.includes('เครื่องดื่ม')); const desserts = allProducts.filter(p => p.category.includes('หวาน') || p.category.includes('ทานเล่น')); let bestSet = []; let attempts = 0; let found = false; while (attempts < 50 && !found) { let set = []; let currentTotal = 0; let currentKcal = 0; const rMain = mains[Math.floor(Math.random() * mains.length)]; if(rMain) { set.push(rMain); currentTotal += rMain.price; currentKcal += (rMain.kcal || 0); } if (drinks.length > 0 && Math.random() > 0.3) { const rDrink = drinks[Math.floor(Math.random() * drinks.length)]; set.push(rDrink); currentTotal += rDrink.price; currentKcal += (rDrink.kcal || 0); } if (desserts.length > 0 && Math.random() > 0.5) { const rDessert = desserts[Math.floor(Math.random() * desserts.length)]; set.push(rDessert); currentTotal += rDessert.price; currentKcal += (rDessert.kcal || 0); } if (aiMode === 'budget') { if (currentTotal <= limit && currentTotal > (limit * 0.5)) { bestSet = set; found = true; } } else { if (currentKcal <= limit && currentKcal > (limit * 0.6)) { bestSet = set; found = true; } } attempts++; } if (bestSet.length === 0) { alert("ไม่พบเซตที่ตรงเงื่อนไข"); return; } currentAiSet = bestSet; listContainer.innerHTML = ""; let tp = 0; let tk = 0; bestSet.forEach(p => { tp += p.price; tk += (p.kcal || 0); listContainer.innerHTML += `<div class="flex items-center p-3"><img src="${p.image}" class="w-12 h-12 rounded-lg object-cover bg-gray-100"><div class="ml-3 flex-grow"><p class="font-bold text-sm text-gray-800">${p.name}</p><p class="text-xs text-gray-500">${p.category}</p></div><p class="font-bold text-mk-red">${p.price} ฿</p></div>`; }); document.getElementById('ai-total-price').innerText = tp + " ฿"; document.getElementById('ai-total-kcal').innerText = tk + " Kcal"; document.getElementById('ai-result').classList.remove('hidden'); }
-        function addAiSetToCart() { currentAiSet.forEach(p => { if (cart[p.id]) cart[p.id].quantity++; else cart[p.id] = { ...p, quantity: 1 }; }); updateCartUI(); alert(`เพิ่ม ${currentAiSet.length} รายการแล้ว!`); switchPage('home'); }
-        
         function searchProduct(k) { if(!k) renderProducts(allProducts); else renderProducts(allProducts.filter(p=>p.name.toLowerCase().includes(k.toLowerCase()))); }
         function setupCategories(products) { const categories = [...new Set(products.map(p => p.category))]; const container = document.getElementById('category-container'); container.innerHTML = '<button onclick="filterCategory(\'all\', this)" class="category-btn active whitespace-nowrap px-4 py-1 rounded-full border border-gray-300 text-sm text-gray-600 transition mx-1">ทั้งหมด</button>'; categories.forEach(cat => { if(!cat) return; const btn = document.createElement('button'); btn.className = 'category-btn whitespace-nowrap px-4 py-1 rounded-full border border-gray-300 text-sm text-gray-600 transition mx-1'; btn.innerText = cat; btn.onclick = () => filterCategory(cat, btn); container.appendChild(btn); }); }
         function filterCategory(cat, btn) { document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active', 'border-mk-red', 'text-white')); btn.classList.add('active'); if(cat==='all') renderProducts(allProducts); else renderProducts(allProducts.filter(p=>p.category===cat)); }
         function loadProfileLocal() { const d = localStorage.getItem('mk_profile'); if(d) { const p = JSON.parse(d); document.getElementById('prof-name').value = p.name; document.getElementById('prof-tel').value = p.tel; document.getElementById('prof-address').value = p.address; userProfileData = p; } }
         function saveProfile() { const p = { name: document.getElementById('prof-name').value, tel: document.getElementById('prof-tel').value, address: document.getElementById('prof-address').value }; localStorage.setItem('mk_profile', JSON.stringify(p)); userProfileData = p; alert('บันทึกแล้ว'); }
+        function openMapModal() { document.getElementById('map-modal').classList.remove('hidden'); if(!map){map=L.map('map').setView([13.7563,100.5018],15);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);panToCurrentLocation();}else setTimeout(()=>map.invalidateSize(),100); }
+        function closeMapModal() { document.getElementById('map-modal').classList.add('hidden'); }
+        function panToCurrentLocation() { navigator.geolocation.getCurrentPosition(p=>map.setView([p.coords.latitude,p.coords.longitude],17)); }
+        function confirmLocation() { const c=map.getCenter(); document.getElementById('checkout-address').value += ` (พิกัด: ${c.lat.toFixed(5)},${c.lng.toFixed(5)})`; closeMapModal(); }
         
         document.getElementById('orderForm').addEventListener('submit', async (e) => { e.preventDefault(); const btn = document.getElementById('submitBtn'); btn.innerHTML = 'กำลังส่ง...'; btn.disabled = true; const fileInput = document.getElementById('slip'); let base64 = ""; if (fileInput.files.length) { base64 = await new Promise(r => { const rd = new FileReader(); rd.onload=()=>r(rd.result); rd.readAsDataURL(fileInput.files[0]); }); } const items = Object.values(cart); const total = items.reduce((s,i)=>s+(i.price*i.quantity),0); const payload = { lineUid: userLineUid, name: document.getElementById('checkout-name').value, telephone: document.getElementById('checkout-tel').value, address: document.getElementById('checkout-address').value, image: base64, orderDetails: items, totalPrice: total }; fetch(GAS_URL, { method: 'POST', mode: 'no-cors', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(payload)}).then(() => { alert("สั่งซื้อสำเร็จ!"); liff.closeWindow(); }).catch(() => { alert("Error"); btn.disabled=false; btn.innerHTML="ยืนยันสั่งซื้อ"; }); });
 
