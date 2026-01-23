@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MK Delivery Pro</title>
+    <title>MK Super App</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -16,6 +16,8 @@
         
         .bg-mk-red { background-color: #ce1126; }
         .text-mk-red { color: #ce1126; }
+        .text-gold { color: #D4AF37; }
+        .bg-gold { background-color: #D4AF37; }
         
         .page { display: none; width: 100%; min-height: 100vh; background: #F8F9FA; padding-bottom: 80px; animation: fadeIn 0.2s ease-out; }
         .page.active { display: block !important; }
@@ -33,6 +35,9 @@
         
         .badge-pop { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes pop { 0% { transform: scale(0); } 90% { transform: scale(1.2); } 100% { transform: scale(1); } }
+
+        /* Store Closed Overlay */
+        .store-closed-overlay { filter: grayscale(100%); pointer-events: none; opacity: 0.6; }
     </style>
 </head>
 <body>
@@ -47,10 +52,13 @@
                         <p class="text-[10px] opacity-90">สวัสดี, <span id="header-name">Guest</span></p>
                     </div>
                 </div>
-                <button onclick="openCheckoutModal()" class="relative p-2">
-                    <i class="fas fa-shopping-basket text-xl"></i>
-                    <span id="header-cart-badge" class="absolute top-0 right-0 bg-yellow-400 text-red-600 text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full hidden shadow-sm">0</span>
-                </button>
+                <div class="flex items-center space-x-3">
+                    <span id="store-status-badge" class="bg-green-500 text-[10px] px-2 py-0.5 rounded-full font-bold hidden">OPEN</span>
+                    <button onclick="openCheckoutModal()" class="relative p-1">
+                        <i class="fas fa-shopping-basket text-xl"></i>
+                        <span id="header-cart-badge" class="absolute -top-1 -right-1 bg-yellow-400 text-red-600 text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full hidden shadow-sm">0</span>
+                    </button>
+                </div>
             </div>
 
             <div class="px-4 mt-[-15px]">
@@ -59,7 +67,22 @@
                     <input type="text" placeholder="ค้นหาเมนู..." class="w-full ml-3 outline-none text-sm" onkeyup="searchProduct(this.value)">
                 </div>
             </div>
+
+            <div class="px-4 mt-4 overflow-hidden">
+                <div class="flex overflow-x-auto space-x-3 hide-scroll snap-x">
+                    <img src="https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=500&q=60" class="w-[85%] h-32 object-cover rounded-xl shadow snap-center flex-shrink-0">
+                    <img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=500&q=60" class="w-[85%] h-32 object-cover rounded-xl shadow snap-center flex-shrink-0">
+                    <img src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=500&q=60" class="w-[85%] h-32 object-cover rounded-xl shadow snap-center flex-shrink-0">
+                </div>
+            </div>
+
             <div id="category-container" class="flex overflow-x-auto space-x-2 p-3 hide-scroll mt-1"></div>
+        </div>
+
+        <div id="closed-alert" class="hidden bg-gray-800 text-white p-4 text-center mx-4 rounded-xl mt-4">
+            <i class="fas fa-store-slash text-2xl mb-2"></i>
+            <p class="font-bold">ร้านปิดให้บริการชั่วคราว</p>
+            <p class="text-xs opacity-75">กรุณากลับมาใหม่ภายหลัง</p>
         </div>
 
         <div class="container mx-auto p-4">
@@ -80,8 +103,24 @@
         <div class="bg-mk-red p-6 text-white text-center rounded-b-3xl shadow-md">
             <div id="profile-img-large" class="w-20 h-20 bg-white rounded-full mx-auto border-4 border-white shadow-lg overflow-hidden bg-gray-200"></div>
             <h2 id="profile-name" class="text-xl font-bold mt-3">Guest</h2>
+            <div class="mt-2 inline-block bg-white/20 px-3 py-1 rounded-full text-xs" id="user-tier-badge">Member</div>
         </div>
-        <div class="p-4 -mt-4">
+
+        <div class="p-4 -mt-8">
+            <div class="bg-white rounded-xl shadow-lg p-5 mb-4 border border-yellow-100 relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-20 h-20 bg-yellow-50 rounded-full -mr-10 -mt-10 z-0"></div>
+                <div class="relative z-10 flex justify-between items-center">
+                    <div>
+                        <p class="text-xs text-gray-500">คะแนนสะสม</p>
+                        <p class="text-3xl font-bold text-gold" id="user-points">0</p>
+                        <p class="text-[10px] text-gray-400 mt-1">ทุก 100 บาท = 1 คะแนน</p>
+                    </div>
+                    <div class="text-right">
+                        <i class="fas fa-crown text-4xl text-gold opacity-20"></i>
+                    </div>
+                </div>
+            </div>
+
             <div class="bg-white rounded-xl shadow-lg p-5 space-y-4">
                 <h3 class="font-bold text-gray-700 border-b pb-2">ข้อมูลส่วนตัว</h3>
                 <input type="text" id="prof-name" class="w-full border-b p-2 outline-none" placeholder="ชื่อ-นามสกุล">
@@ -132,7 +171,7 @@
                             <p class="text-xl font-bold text-mk-red" id="ai-total-price">0 ฿</p>
                         </div>
                         <div class="text-right mr-4">
-                             <p class="text-xs text-gray-500">พลังงาน</p>
+                            <p class="text-xs text-gray-500">พลังงาน</p>
                             <p class="text-sm font-bold text-orange-600" id="ai-total-kcal">0 Kcal</p>
                         </div>
                         <button onclick="addAiSetToCart()" class="bg-mk-red text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-red-800">
@@ -195,10 +234,13 @@
             <div id="hist-detail-status-box" class="text-center p-2 rounded-lg bg-gray-100 font-bold mb-6">Status</div>
             <h3 class="font-bold text-gray-800 mb-2 border-b pb-2">รายการสินค้า</h3>
             <div id="hist-detail-items" class="space-y-3 mb-6"></div>
-            <div class="flex justify-between items-center text-xl font-bold border-t pt-4">
+            <div class="flex justify-between items-center text-xl font-bold border-t pt-4 mb-6">
                 <span>ยอดรวมสุทธิ</span>
                 <span id="hist-detail-total" class="text-mk-red">0 ฿</span>
             </div>
+            <button onclick="reorderCurrentHistory()" class="w-full border border-mk-red text-mk-red font-bold py-3 rounded-xl hover:bg-red-50">
+                <i class="fas fa-redo mr-2"></i>สั่งรายการนี้อีกครั้ง
+            </button>
         </div>
     </section>
 
@@ -266,6 +308,9 @@
         let historyStack = []; 
         let aiMode = 'budget';
         let currentAiSet = [];
+        let storeStatus = "OPEN";
+        let favorites = JSON.parse(localStorage.getItem('mk_favorites') || "[]");
+        let currentHistoryItem = null; // For Reorder
 
         async function main() {
             try {
@@ -277,6 +322,7 @@
                     setupProfileUI(profile);
                     fetchProducts();
                     loadProfileLocal();
+                    fetchHistory(); // For points
                 }
             } catch (err) { console.error(err); }
         }
@@ -304,43 +350,96 @@
             if(document.getElementById('page-home').classList.contains('active')) updateCartUI();
         }
 
+        // --- FETCH PRODUCTS & STATUS ---
         function fetchProducts() {
+            // Check cache
             const cached = localStorage.getItem('mk_products_cache');
-            if (cached) {
-                allProducts = JSON.parse(cached);
+            if(cached) {
+                const parsed = JSON.parse(cached);
+                allProducts = parsed.products || parsed; // Handle old format
+                storeStatus = parsed.status || "OPEN";
+                applyStoreStatus();
                 setupCategories(allProducts);
                 renderProducts(allProducts);
             }
+
             fetch(GAS_URL).then(res => res.json()).then(data => {
-                if (JSON.stringify(data) !== cached) {
-                    allProducts = data;
+                // Data structure: { status: "OPEN", products: [...] }
+                const isNew = JSON.stringify(data) !== cached;
+                if (isNew) {
+                    storeStatus = data.status || "OPEN";
+                    allProducts = data.products || data; 
                     localStorage.setItem('mk_products_cache', JSON.stringify(data));
-                    setupCategories(data);
-                    renderProducts(data);
+                    applyStoreStatus();
+                    setupCategories(allProducts);
+                    renderProducts(allProducts);
                 }
             });
+        }
+
+        function applyStoreStatus() {
+            const badge = document.getElementById('store-status-badge');
+            const overlay = document.getElementById('closed-alert');
+            if (storeStatus === 'CLOSE') {
+                badge.className = "bg-red-500 text-[10px] px-2 py-0.5 rounded-full font-bold";
+                badge.innerText = "CLOSED";
+                badge.classList.remove('hidden');
+                overlay.classList.remove('hidden');
+                document.getElementById('product-list').classList.add('store-closed-overlay');
+                document.getElementById('submitBtn').disabled = true;
+                document.getElementById('submitBtn').innerText = "ร้านปิดชั่วคราว";
+                document.getElementById('submitBtn').className = "w-full bg-gray-400 text-white font-bold py-3 rounded-xl shadow-lg mt-6";
+            } else {
+                badge.className = "bg-green-500 text-[10px] px-2 py-0.5 rounded-full font-bold";
+                badge.innerText = "OPEN";
+                badge.classList.remove('hidden');
+                overlay.classList.add('hidden');
+                document.getElementById('product-list').classList.remove('store-closed-overlay');
+            }
         }
 
         function renderProducts(products) {
             const container = document.getElementById('product-list');
             container.innerHTML = "";
             products.forEach(p => {
+                const isFav = favorites.includes(p.id);
+                const favColor = isFav ? 'text-mk-red' : 'text-gray-300';
                 const kcalTag = p.kcal ? `<span class="bg-orange-100 text-orange-600 text-[10px] px-1 rounded font-bold">${p.kcal} Kcal</span>` : '';
                 container.innerHTML += `
-                    <div onclick="openProductDetail('${p.id}')" class="bg-white rounded-xl shadow-sm overflow-hidden flex flex-col border border-transparent hover:border-red-100 transition cursor-pointer">
-                        <div class="h-32 w-full relative bg-gray-100"><img src="${p.image}" class="w-full h-full object-cover" loading="lazy"></div>
-                        <div class="p-3 flex flex-col flex-grow">
-                            <h3 class="font-bold text-gray-800 text-sm line-clamp-1">${p.name}</h3>
-                            <div class="flex justify-between items-center mb-1"><p class="text-xs text-gray-500">${p.category||''}</p>${kcalTag}</div>
-                            <div class="mt-auto flex justify-between items-center">
-                                <span class="font-bold text-mk-red">${p.price}.-</span>
-                                <button class="bg-red-50 text-mk-red w-7 h-7 rounded-full flex items-center justify-center border border-red-100"><i class="fas fa-plus text-xs"></i></button>
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden flex flex-col border border-transparent hover:border-red-100 transition relative">
+                        <button onclick="toggleFavorite(event, '${p.id}')" class="absolute top-2 right-2 z-10 bg-white rounded-full p-1 shadow ${favColor}"><i class="fas fa-heart"></i></button>
+                        <div onclick="openProductDetail('${p.id}')" class="cursor-pointer">
+                            <div class="h-32 w-full relative bg-gray-100"><img src="${p.image}" class="w-full h-full object-cover" loading="lazy"></div>
+                            <div class="p-3 flex flex-col flex-grow">
+                                <h3 class="font-bold text-gray-800 text-sm line-clamp-1">${p.name}</h3>
+                                <div class="flex justify-between items-center mb-1"><p class="text-xs text-gray-500">${p.category||''}</p>${kcalTag}</div>
+                                <div class="mt-auto flex justify-between items-center">
+                                    <span class="font-bold text-mk-red">${p.price}.-</span>
+                                    <button class="bg-red-50 text-mk-red w-7 h-7 rounded-full flex items-center justify-center border border-red-100"><i class="fas fa-plus text-xs"></i></button>
+                                </div>
                             </div>
                         </div>
                     </div>`;
             });
         }
 
+        // --- FAVORITES ---
+        function toggleFavorite(e, id) {
+            e.stopPropagation();
+            if (favorites.includes(id)) {
+                favorites = favorites.filter(favId => favId !== id);
+            } else {
+                favorites.push(id);
+            }
+            localStorage.setItem('mk_favorites', JSON.stringify(favorites));
+            
+            // Re-render only icon (optimization: toggle class directly)
+            const btn = e.currentTarget;
+            btn.classList.toggle('text-mk-red');
+            btn.classList.toggle('text-gray-300');
+        }
+
+        // --- DETAIL PAGE ---
         let currentDetailId = null;
         function openProductDetail(id) {
             const p = allProducts.find(x => x.id == id);
@@ -364,6 +463,7 @@
         }
 
         function submitProductToCart() {
+            if(storeStatus === 'CLOSE') { alert('ร้านปิดอยู่ครับ'); return; }
             const qty = parseInt(document.getElementById('detail-qty').innerText);
             const note = document.getElementById('detail-note').value.trim();
             const p = allProducts.find(x => x.id == currentDetailId);
@@ -377,7 +477,7 @@
             updateCartUI();
         }
 
-        // --- CART SYSTEM (FIXED: +/- Buttons) ---
+        // --- CART SYSTEM (FIXED: [-] button logic) ---
         function updateCartUI() {
             const items = Object.values(cart);
             const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
@@ -404,6 +504,10 @@
             }
             Object.values(cart).forEach(item => {
                 const noteHtml = item.note ? `<p class="text-xs text-mk-red"><i class="far fa-edit"></i> ${item.note}</p>` : '';
+                
+                // Logic: ถ้าเหลือ 1 ชิ้น ปุ่มลบจะเป็นสีเทา กดไม่ได้ (ต้องกดถังขยะ)
+                const minusDisabled = item.quantity <= 1 ? 'opacity-50 cursor-not-allowed' : 'active:scale-90';
+                
                 container.innerHTML += `
                     <div class="flex justify-between border-b pb-3 mb-3 last:border-0 last:mb-0 last:pb-0">
                         <div class="flex space-x-3 w-2/3">
@@ -416,26 +520,31 @@
                         </div>
                         <div class="flex flex-col items-end">
                             <div class="flex items-center space-x-2 bg-gray-50 rounded-lg p-1 border border-gray-100">
-                                <button onclick="updateCartItemQty('${item.id}', -1)" class="w-6 h-6 flex items-center justify-center bg-white rounded shadow text-mk-red active:scale-90"><i class="fas fa-minus text-xs"></i></button>
+                                <button onclick="updateCartItemQty('${item.id}', -1)" class="w-6 h-6 flex items-center justify-center bg-white rounded shadow text-mk-red ${minusDisabled}"><i class="fas fa-minus text-xs"></i></button>
                                 <span class="text-sm font-bold w-4 text-center">${item.quantity}</span>
                                 <button onclick="updateCartItemQty('${item.id}', 1)" class="w-6 h-6 flex items-center justify-center bg-mk-red text-white rounded shadow active:scale-90"><i class="fas fa-plus text-xs"></i></button>
                             </div>
                             <div class="font-bold text-sm mt-1">${(item.price * item.quantity).toLocaleString()} ฿</div>
                         </div>
+                        <button onclick="removeFromCart('${item.id}')" class="text-gray-400 self-center ml-2"><i class="fas fa-trash"></i></button>
                     </div>`;
             });
         }
 
-        // New Helper for Cart +/-
+        // FIXED: Only decrease if > 1
         function updateCartItemQty(id, delta) {
             if (cart[id]) {
-                cart[id].quantity += delta;
-                if (cart[id].quantity <= 0) delete cart[id];
+                const newQty = cart[id].quantity + delta;
+                if (newQty < 1) return; // Stop here! Use trash button to delete.
+                cart[id].quantity = newQty;
                 updateCartUI();
             }
         }
 
+        function removeFromCart(id) { delete cart[id]; updateCartUI(); }
+        
         function openCheckoutModal() { 
+            if(storeStatus === 'CLOSE') { alert('ร้านปิดอยู่ครับ'); return; }
             document.getElementById('checkout-modal').classList.remove('hidden'); 
             if(userProfileData.name) document.getElementById('checkout-name').value = userProfileData.name; 
             if(userProfileData.tel) document.getElementById('checkout-tel').value = userProfileData.tel; 
@@ -444,7 +553,7 @@
         }
         function closeCheckoutModal() { document.getElementById('checkout-modal').classList.add('hidden'); }
 
-        // --- HISTORY ---
+        // --- HISTORY & LOYALTY ---
         function fetchHistory() {
             const list = document.getElementById('history-list');
             list.innerHTML = '<p class="text-center text-gray-400 mt-10">กำลังโหลด...</p>';
@@ -452,11 +561,19 @@
                 .then(res => res.json())
                 .then(data => {
                     list.innerHTML = "";
+                    let grandTotalSpent = 0;
+                    
                     if(data.length===0) { list.innerHTML = `<div class="text-center mt-10 text-gray-400">ยังไม่มีประวัติ</div>`; return; }
                     data.forEach(order => {
                         let items = []; 
                         try { items = JSON.parse(order.items); if(!Array.isArray(items)) items=[items]; } catch(e){ items=[]; }
                         const total = items.reduce((sum,i)=>sum+(Number(i.price||0)*Number(i.quantity||1)),0);
+                        
+                        // Calculate Points (Only finished orders)
+                        if(order.status.includes('เสร็จ') || order.status.includes('ส่ง')) {
+                            grandTotalSpent += total;
+                        }
+
                         const safeData = encodeURIComponent(JSON.stringify({...order, items, total}));
                         let stColor = "bg-gray-100 text-gray-600";
                         if(order.status.includes('รอ')) stColor="bg-yellow-100 text-yellow-700";
@@ -472,11 +589,18 @@
                                 <p class="text-xs text-gray-500">${items.length} รายการ - <b>${total.toLocaleString()} ฿</b></p>
                             </div>`;
                     });
+                    
+                    // Update Points UI
+                    const points = Math.floor(grandTotalSpent / 100);
+                    document.getElementById('user-points').innerText = points;
+                    if(points > 100) document.getElementById('user-tier-badge').innerText = "Gold Member";
+                    if(points > 500) document.getElementById('user-tier-badge').innerText = "Platinum Member";
                 });
         }
 
         function openHistoryDetail(encoded) {
             const data = JSON.parse(decodeURIComponent(encoded));
+            currentHistoryItem = data; // Save for reorder
             document.getElementById('hist-detail-id').innerText = '#' + data.orderId.substring(0,8).toUpperCase();
             document.getElementById('hist-detail-date').innerText = data.date;
             document.getElementById('hist-detail-status-box').innerText = data.status;
@@ -494,7 +618,23 @@
             page.classList.remove('hidden'); page.classList.add('active');
         }
 
-        // --- AI LOGIC (FIXED: ID Match & Similar Items) ---
+        // Reorder Function
+        function reorderCurrentHistory() {
+            if(!currentHistoryItem) return;
+            cart = {}; // Clear cart first
+            currentHistoryItem.items.forEach(item => {
+                // Find original product to get image/kcal/cat
+                const productRef = allProducts.find(p => p.name === item.name); // Fallback to name match
+                if(productRef) {
+                    cart[productRef.id] = { ...productRef, quantity: item.quantity, note: item.note || "" };
+                }
+            });
+            updateCartUI();
+            goBack(); // Close History Detail
+            openCheckoutModal(); // Go to Checkout
+        }
+
+        // --- AI LOGIC ---
         function generateAiSet() { 
             const limit = parseInt(document.getElementById('ai-value').value); 
             const listContainer = document.getElementById('ai-items-list'); 
@@ -555,14 +695,16 @@
             container.classList.remove('hidden');
         }
 
+        // --- UTILS ---
         function addAiSetToCart() { currentAiSet.forEach(p => { if (cart[p.id]) cart[p.id].quantity++; else cart[p.id] = { ...p, quantity: 1 }; }); updateCartUI(); alert(`เพิ่ม ${currentAiSet.length} รายการแล้ว!`); switchPage('home'); }
         function replaceMainDish(newId) { const newMain = allProducts.find(p => p.id == newId); currentAiSet[0] = newMain; const listContainer = document.getElementById('ai-items-list'); listContainer.innerHTML = ""; let tp = 0; let tk = 0; currentAiSet.forEach(p => { tp += p.price; tk += (p.kcal || 0); listContainer.innerHTML += `<div class="flex items-center p-3"><img src="${p.image}" class="w-12 h-12 rounded-lg object-cover bg-gray-100"><div class="ml-3 flex-grow"><p class="font-bold text-sm text-gray-800">${p.name}</p><p class="text-xs text-gray-500">${p.category} | ${p.kcal||0} Kcal</p></div><p class="font-bold text-mk-red">${p.price} ฿</p></div>`; }); document.getElementById('ai-total-price').innerText = tp + " ฿"; document.getElementById('ai-total-kcal').innerText = tk + " Kcal"; }
         function setAiMode(mode) { aiMode = mode; const bB = document.getElementById('btn-mode-budget'); const bK = document.getElementById('btn-mode-kcal'); const lb = document.getElementById('ai-label'); const sl = document.getElementById('ai-slider'); const inp = document.getElementById('ai-value'); if (mode === 'budget') { bB.className = "flex-1 py-2 rounded-md text-sm font-bold bg-white shadow text-mk-red transition"; bK.className = "flex-1 py-2 rounded-md text-sm font-bold text-gray-500 transition"; lb.innerText = "งบประมาณไม่เกิน (บาท)"; sl.min = 50; sl.max = 1000; sl.value = 200; inp.value = 200; } else { bK.className = "flex-1 py-2 rounded-md text-sm font-bold bg-white shadow text-mk-red transition"; bB.className = "flex-1 py-2 rounded-md text-sm font-bold text-gray-500 transition"; lb.innerText = "พลังงานไม่เกิน (Kcal)"; sl.min = 200; sl.max = 1500; sl.value = 500; inp.value = 500; } }
         function adjustAiValue(d) { const i = document.getElementById('ai-value'); const s = document.getElementById('ai-slider'); let v = parseInt(i.value) + d; i.value = v; s.value = v; }
         function syncAiValue(v) { document.getElementById('ai-value').value = v; }
         function searchProduct(k) { if(!k) renderProducts(allProducts); else renderProducts(allProducts.filter(p=>p.name.toLowerCase().includes(k.toLowerCase()))); }
-        function setupCategories(products) { const categories = [...new Set(products.map(p => p.category))]; const container = document.getElementById('category-container'); container.innerHTML = '<button onclick="filterCategory(\'all\', this)" class="category-btn active whitespace-nowrap px-4 py-1 rounded-full border border-gray-300 text-sm text-gray-600 transition mx-1">ทั้งหมด</button>'; categories.forEach(cat => { if(!cat) return; const btn = document.createElement('button'); btn.className = 'category-btn whitespace-nowrap px-4 py-1 rounded-full border border-gray-300 text-sm text-gray-600 transition mx-1'; btn.innerText = cat; btn.onclick = () => filterCategory(cat, btn); container.appendChild(btn); }); }
+        function setupCategories(products) { const categories = [...new Set(products.map(p => p.category))]; const container = document.getElementById('category-container'); container.innerHTML = '<button onclick="filterCategory(\'all\', this)" class="category-btn active whitespace-nowrap px-4 py-1 rounded-full border border-gray-300 text-sm text-gray-600 transition mx-1">ทั้งหมด</button><button onclick="filterFavorites(this)" class="category-btn whitespace-nowrap px-4 py-1 rounded-full border border-gray-300 text-sm text-gray-600 transition mx-1">❤️ ที่ชอบ</button>'; categories.forEach(cat => { if(!cat) return; const btn = document.createElement('button'); btn.className = 'category-btn whitespace-nowrap px-4 py-1 rounded-full border border-gray-300 text-sm text-gray-600 transition mx-1'; btn.innerText = cat; btn.onclick = () => filterCategory(cat, btn); container.appendChild(btn); }); }
         function filterCategory(cat, btn) { document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active', 'border-mk-red', 'text-white')); btn.classList.add('active'); if(cat==='all') renderProducts(allProducts); else renderProducts(allProducts.filter(p=>p.category===cat)); }
+        function filterFavorites(btn) { document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active', 'border-mk-red', 'text-white')); btn.classList.add('active'); const favProducts = allProducts.filter(p => favorites.includes(p.id)); renderProducts(favProducts); }
         function loadProfileLocal() { const d = localStorage.getItem('mk_profile'); if(d) { const p = JSON.parse(d); document.getElementById('prof-name').value = p.name; document.getElementById('prof-tel').value = p.tel; document.getElementById('prof-address').value = p.address; userProfileData = p; } }
         function saveProfile() { const p = { name: document.getElementById('prof-name').value, tel: document.getElementById('prof-tel').value, address: document.getElementById('prof-address').value }; localStorage.setItem('mk_profile', JSON.stringify(p)); userProfileData = p; alert('บันทึกแล้ว'); }
         function openMapModal() { document.getElementById('map-modal').classList.remove('hidden'); if(!map){map=L.map('map').setView([13.7563,100.5018],15);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);panToCurrentLocation();}else setTimeout(()=>map.invalidateSize(),100); }
