@@ -25,19 +25,28 @@
             width: 100%; 
             min-height: 100vh; 
             background: #F8F9FA;
-            padding-bottom: 80px; /* Space for bottom nav */
+            padding-bottom: 80px; 
             animation: fadeIn 0.2s ease-out;
         }
-        .page.active { display: block; }
-        .page.full-screen { padding-bottom: 0; z-index: 50; position: fixed; top: 0; left: 0; overflow-y: auto; height: 100%; }
+        
+        /* แก้ไข: บังคับให้ active แสดงผลแน่นอน และ Full screen ทับทุกอย่าง */
+        .page.active { display: block !important; }
+        .page.full-screen { 
+            padding-bottom: 0; 
+            z-index: 999; /* เพิ่ม Layer ให้สูงขึ้น */
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            overflow-y: auto; 
+            height: 100%; 
+            background-color: white;
+        }
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Scroll & Utilities */
+        /* Utilities */
         .hide-scroll::-webkit-scrollbar { display: none; }
         .category-btn.active { background-color: #ce1126; color: white; border-color: #ce1126; }
-        
-        /* Bottom Nav */
         .nav-item.active-tab { color: #ce1126; }
         .nav-item.inactive-tab { color: #9CA3AF; }
 
@@ -65,7 +74,8 @@
 
         <div class="container mx-auto p-4">
             <div id="product-list" class="grid grid-cols-2 gap-4 pb-16">
-                </div>
+                <div class="text-center col-span-2 text-gray-400 mt-10">กำลังโหลดเมนู...</div>
+            </div>
         </div>
     </section>
 
@@ -93,76 +103,69 @@
     </section>
 
     <section id="page-ai" class="page">
-    <div class="bg-mk-red p-6 text-white text-center rounded-b-3xl shadow-md pb-10">
-        <i class="fas fa-magic text-4xl mb-2 text-yellow-300"></i>
-        <h2 class="text-2xl font-bold">ให้ AI ช่วยเลือกไหม?</h2>
-        <p class="text-sm opacity-90">บอกงบ หรือ แคลอรี่ที่ต้องการ เดี๋ยวจัดให้!</p>
-    </div>
-
-    <div class="p-4 -mt-8">
-        <div class="bg-white rounded-xl shadow-lg p-5 space-y-4">
-            <div class="flex bg-gray-100 rounded-lg p-1">
-                <button onclick="setAiMode('budget')" id="btn-mode-budget" class="flex-1 py-2 rounded-md text-sm font-bold bg-white shadow text-mk-red transition">💰 ตามงบ</button>
-                <button onclick="setAiMode('kcal')" id="btn-mode-kcal" class="flex-1 py-2 rounded-md text-sm font-bold text-gray-500 transition">🔥 ตามแคลฯ</button>
-            </div>
-
-            <div id="ai-input-container" class="text-center py-4">
-                <p class="text-gray-500 text-sm mb-2" id="ai-label">งบประมาณไม่เกิน (บาท)</p>
-                <div class="flex items-center justify-center space-x-2">
-                    <button onclick="adjustAiValue(-10)" class="w-8 h-8 rounded-full bg-gray-200 text-gray-600"><i class="fas fa-minus"></i></button>
-                    <input type="number" id="ai-value" value="200" class="text-3xl font-bold text-center w-32 outline-none text-gray-800" readonly>
-                    <button onclick="adjustAiValue(10)" class="w-8 h-8 rounded-full bg-gray-200 text-gray-600"><i class="fas fa-plus"></i></button>
-                </div>
-                <input type="range" id="ai-slider" min="50" max="1000" step="10" value="200" class="w-full mt-4 accent-red-600" oninput="syncAiValue(this.value)">
-            </div>
-
-            <button onclick="generateAiSet()" class="w-full bg-mk-red text-white font-bold py-3 rounded-xl shadow-lg hover:bg-red-800 transition">
-                <i class="fas fa-wand-magic-sparkles mr-2"></i>เริ่มจัดเซต
-            </button>
+        <div class="bg-mk-red p-6 text-white text-center rounded-b-3xl shadow-md pb-10">
+            <i class="fas fa-magic text-4xl mb-2 text-yellow-300"></i>
+            <h2 class="text-2xl font-bold">ให้ AI ช่วยเลือกไหม?</h2>
+            <p class="text-sm opacity-90">บอกงบ หรือ แคลอรี่ที่ต้องการ เดี๋ยวจัดให้!</p>
         </div>
-
-        <div id="ai-result" class="mt-6 hidden animate-slide-up">
-            <h3 class="font-bold text-gray-700 mb-3 flex justify-between items-center">
-                <span>✨ เซตแนะนำสำหรับคุณ</span>
-                <button onclick="generateAiSet()" class="text-xs text-mk-red bg-red-50 px-2 py-1 rounded"><i class="fas fa-sync-alt mr-1"></i>เปลี่ยนชุด</button>
-            </h3>
-
-            <div class="bg-white rounded-xl shadow border border-red-100 overflow-hidden relative">
-                <div class="absolute top-0 left-0 bg-yellow-400 text-red-900 text-xs font-bold px-3 py-1 rounded-br-lg z-10">คุ้มค่า!</div>
-                
-                <div id="ai-items-list" class="divide-y"></div>
-
-                <div class="bg-red-50 p-4 flex justify-between items-center">
-                    <div>
-                        <p class="text-xs text-gray-500">ราคารวม</p>
-                        <p class="text-xl font-bold text-mk-red" id="ai-total-price">0 ฿</p>
+        <div class="p-4 -mt-8">
+            <div class="bg-white rounded-xl shadow-lg p-5 space-y-4">
+                <div class="flex bg-gray-100 rounded-lg p-1">
+                    <button onclick="setAiMode('budget')" id="btn-mode-budget" class="flex-1 py-2 rounded-md text-sm font-bold bg-white shadow text-mk-red transition">💰 ตามงบ</button>
+                    <button onclick="setAiMode('kcal')" id="btn-mode-kcal" class="flex-1 py-2 rounded-md text-sm font-bold text-gray-500 transition">🔥 ตามแคลฯ</button>
+                </div>
+                <div id="ai-input-container" class="text-center py-4">
+                    <p class="text-gray-500 text-sm mb-2" id="ai-label">งบประมาณไม่เกิน (บาท)</p>
+                    <div class="flex items-center justify-center space-x-2">
+                        <button onclick="adjustAiValue(-10)" class="w-8 h-8 rounded-full bg-gray-200 text-gray-600"><i class="fas fa-minus"></i></button>
+                        <input type="number" id="ai-value" value="200" class="text-3xl font-bold text-center w-32 outline-none text-gray-800" readonly>
+                        <button onclick="adjustAiValue(10)" class="w-8 h-8 rounded-full bg-gray-200 text-gray-600"><i class="fas fa-plus"></i></button>
                     </div>
-                    <div class="text-right mr-4">
-                        <p class="text-xs text-gray-500">พลังงานรวม</p>
-                        <p class="text-sm font-bold text-orange-600" id="ai-total-kcal">0 Kcal</p>
+                    <input type="range" id="ai-slider" min="50" max="1000" step="10" value="200" class="w-full mt-4 accent-red-600" oninput="syncAiValue(this.value)">
+                </div>
+                <button onclick="generateAiSet()" class="w-full bg-mk-red text-white font-bold py-3 rounded-xl shadow-lg hover:bg-red-800 transition">
+                    <i class="fas fa-wand-magic-sparkles mr-2"></i>เริ่มจัดเซต
+                </button>
+            </div>
+            <div id="ai-result" class="mt-6 hidden animate-slide-up">
+                <h3 class="font-bold text-gray-700 mb-3 flex justify-between items-center">
+                    <span>✨ เซตแนะนำสำหรับคุณ</span>
+                    <button onclick="generateAiSet()" class="text-xs text-mk-red bg-red-50 px-2 py-1 rounded"><i class="fas fa-sync-alt mr-1"></i>เปลี่ยนชุด</button>
+                </h3>
+                <div class="bg-white rounded-xl shadow border border-red-100 overflow-hidden relative">
+                    <div class="absolute top-0 left-0 bg-yellow-400 text-red-900 text-xs font-bold px-3 py-1 rounded-br-lg z-10">คุ้มค่า!</div>
+                    <div id="ai-items-list" class="divide-y"></div>
+                    <div class="bg-red-50 p-4 flex justify-between items-center">
+                        <div>
+                            <p class="text-xs text-gray-500">ราคารวม</p>
+                            <p class="text-xl font-bold text-mk-red" id="ai-total-price">0 ฿</p>
+                        </div>
+                        <div class="text-right mr-4">
+                            <p class="text-xs text-gray-500">พลังงานรวม</p>
+                            <p class="text-sm font-bold text-orange-600" id="ai-total-kcal">0 Kcal</p>
+                        </div>
+                        <button onclick="addAiSetToCart()" class="bg-mk-red text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-red-800">
+                            เหมาเซตนี้
+                        </button>
                     </div>
-                    <button onclick="addAiSetToCart()" class="bg-mk-red text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-red-800">
-                        เหมาเซตนี้
-                    </button>
+                </div>
+                <div id="ai-similar" class="mt-6 hidden">
+                    <h3 class="font-bold text-gray-700 mb-3 text-sm">💡 ตัวเลือกอื่นๆ ที่คล้ายกัน</h3>
+                    <div id="ai-similar-list" class="space-y-2"></div>
                 </div>
             </div>
-
-            <div id="ai-similar" class="mt-6 hidden">
-                <h3 class="font-bold text-gray-700 mb-3 text-sm">💡 ตัวเลือกอื่นๆ ที่คล้ายกัน</h3>
-                <div id="ai-similar-list" class="space-y-2"></div>
-            </div>
         </div>
-    </div>
-</section>
+    </section>
 
-    <section id="page-product-detail" class="page full-screen bg-white hidden">
+    <section id="page-product-detail" class="page full-screen hidden">
         <div class="relative">
             <button onclick="goBack()" class="absolute top-4 left-4 bg-white/80 p-2 rounded-full shadow z-10 text-gray-700">
                 <i class="fas fa-arrow-left fa-lg"></i>
             </button>
             <img id="detail-img" class="w-full h-72 object-cover">
         </div>
-        <div class="p-5 pb-24"> <div class="flex justify-between items-start">
+        <div class="p-5 pb-24"> 
+            <div class="flex justify-between items-start">
                 <h1 id="detail-name" class="text-2xl font-bold text-gray-800 w-3/4">Product Name</h1>
                 <span id="detail-kcal" class="bg-orange-100 text-orange-600 px-2 py-1 rounded text-xs font-bold whitespace-nowrap">0 Kcal</span>
             </div>
@@ -187,7 +190,7 @@
         </div>
     </section>
 
-    <section id="page-history-detail" class="page full-screen bg-white hidden">
+    <section id="page-history-detail" class="page full-screen hidden">
         <div class="bg-mk-red p-4 text-white flex items-center sticky top-0 z-10 shadow-md">
             <button onclick="goBack()" class="mr-4"><i class="fas fa-arrow-left fa-lg"></i></button>
             <h1 class="font-bold text-lg">รายละเอียดคำสั่งซื้อ</h1>
@@ -251,42 +254,34 @@
     </div>
 
     <nav class="fixed bottom-0 w-full bg-white border-t flex justify-around py-2 z-40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] text-gray-500">
-    <button onclick="switchPage('home')" class="nav-item active-tab flex flex-col items-center w-full" id="tab-home">
-        <i class="fas fa-utensils text-xl mb-1"></i><span class="text-[10px]">เมนู</span>
-    </button>
-    
-    <button onclick="switchPage('ai')" class="nav-item inactive-tab flex flex-col items-center w-full" id="tab-ai">
-        <div class="bg-mk-red text-white w-10 h-10 rounded-full flex items-center justify-center -mt-4 border-4 border-white shadow-lg">
-            <i class="fas fa-robot text-lg"></i>
-        </div>
-        <span class="text-[10px] mt-1 text-mk-red font-bold">AI จัดให้</span>
-    </button>
-
-    <button onclick="switchPage('history')" class="nav-item inactive-tab flex flex-col items-center w-full" id="tab-history">
-        <i class="fas fa-history text-xl mb-1"></i><span class="text-[10px]">ประวัติ</span>
-    </button>
-    <button onclick="switchPage('profile')" class="nav-item inactive-tab flex flex-col items-center w-full" id="tab-profile">
-        <i class="fas fa-user text-xl mb-1"></i><span class="text-[10px]">โปรไฟล์</span>
-    </button>
-</nav>
+        <button onclick="switchPage('home')" class="nav-item active-tab flex flex-col items-center w-full" id="tab-home">
+            <i class="fas fa-utensils text-xl mb-1"></i><span class="text-[10px]">เมนู</span>
+        </button>
+        <button onclick="switchPage('ai')" class="nav-item inactive-tab flex flex-col items-center w-full" id="tab-ai">
+            <div class="bg-mk-red text-white w-10 h-10 rounded-full flex items-center justify-center -mt-4 border-4 border-white shadow-lg"><i class="fas fa-robot text-lg"></i></div>
+            <span class="text-[10px] mt-1 text-mk-red font-bold">AI จัดให้</span>
+        </button>
+        <button onclick="switchPage('history')" class="nav-item inactive-tab flex flex-col items-center w-full" id="tab-history">
+            <i class="fas fa-history text-xl mb-1"></i><span class="text-[10px]">ประวัติ</span>
+        </button>
+        <button onclick="switchPage('profile')" class="nav-item inactive-tab flex flex-col items-center w-full" id="tab-profile">
+            <i class="fas fa-user text-xl mb-1"></i><span class="text-[10px]">โปรไฟล์</span>
+        </button>
+    </nav>
 
     <script>
         const LIFF_ID = "2006820737-B6zOM56Y";
         const GAS_URL = "https://script.google.com/macros/s/AKfycbyL-HaoVYFxy3RRDLNXaandxLmC1dE-cCBQy6MUrRGuGMhkLP9wX82yM_025HC2WuHSbw/exec";
-        // 
         
         let allProducts = [];
-        let cart = {}; // Object: { productId: { ...itemData, note: "", quantity: 1 } }
+        let cart = {}; 
         let userLineUid = "";
         let map, marker;
         let userProfileData = { name: '', tel: '', address: '' };
-        let historyStack = []; // For back button logic
+        let historyStack = []; 
+        let aiMode = 'budget';
+        let currentAiSet = [];
 
-        // --- AI LOGIC ---
-        let aiMode = 'budget'; // 'budget' or 'kcal'
-        let currentAiSet = []; // เก็บสินค้าที่ AI เลือกให้
-
-        // --- INIT ---
         async function main() {
             try {
                 await liff.init({ liffId: LIFF_ID });
@@ -302,21 +297,21 @@
         }
 
         function setupProfileUI(profile) {
-            const imgTag = `<img src="${profile.pictureUrl}" class="w-full h-full object-cover">`;
             document.getElementById('user-profile-icon').innerHTML = `<img src="${profile.pictureUrl}" class="w-8 h-8 rounded-full border border-white">`;
-            document.getElementById('profile-img-large').innerHTML = imgTag;
+            document.getElementById('profile-img-large').innerHTML = `<img src="${profile.pictureUrl}" class="w-full h-full object-cover">`;
             document.getElementById('profile-name').innerText = profile.displayName;
         }
 
-        // --- NAVIGATION SYSTEM ---
+        // --- NAVIGATION ---
         function switchPage(pageId) {
-            historyStack = []; // Reset sub-page history when main tab changes
             document.querySelectorAll('.page').forEach(el => {
                 if(!el.classList.contains('full-screen')) el.classList.remove('active');
             });
-            document.querySelectorAll('.full-screen').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.full-screen').forEach(el => {
+                el.classList.remove('active');
+                el.classList.add('hidden');
+            });
 
-            // Tab Styles
             document.querySelectorAll('.nav-item').forEach(el => {
                 el.classList.remove('active-tab'); el.classList.add('inactive-tab');
             });
@@ -332,13 +327,15 @@
         }
 
         function goBack() {
-            // Hide all full-screen pages
-            document.querySelectorAll('.full-screen').forEach(el => el.classList.add('hidden'));
-            // Re-check Cart UI if returning to home
+            // แก้ไข: ปิดหน้า Full Screen ทั้งหมด โดยการลบ class active และเติม hidden
+            document.querySelectorAll('.full-screen').forEach(el => {
+                el.classList.remove('active');
+                el.classList.add('hidden');
+            });
             if(document.getElementById('page-home').classList.contains('active')) updateCartUI();
         }
 
-        // --- PRODUCT SYSTEM ---
+        // --- PRODUCTS ---
         function fetchProducts() {
             const cached = localStorage.getItem('mk_products_cache');
             if (cached) {
@@ -361,7 +358,7 @@
             container.innerHTML = "";
             products.forEach(p => {
                 const kcalTag = p.kcal ? `<span class="bg-orange-100 text-orange-600 text-[10px] px-1 rounded font-bold">${p.kcal} Kcal</span>` : '';
-                const html = `
+                container.innerHTML += `
                     <div onclick="openProductDetail('${p.id}')" class="bg-white rounded-xl shadow-sm overflow-hidden flex flex-col border border-transparent hover:border-red-100 transition cursor-pointer">
                         <div class="h-32 w-full relative bg-gray-100"><img src="${p.image}" class="w-full h-full object-cover" loading="lazy"></div>
                         <div class="p-3 flex flex-col flex-grow">
@@ -373,30 +370,29 @@
                             </div>
                         </div>
                     </div>`;
-                container.innerHTML += html;
             });
         }
 
-        // --- PRODUCT DETAIL PAGE ---
+        // --- DETAIL PAGE ---
         let currentDetailId = null;
         function openProductDetail(id) {
             const p = allProducts.find(x => x.id == id);
             currentDetailId = id;
-            
             document.getElementById('detail-img').src = p.image;
             document.getElementById('detail-name').innerText = p.name;
             document.getElementById('detail-price').innerText = p.price + ' ฿';
             document.getElementById('detail-cat').innerText = p.category || '';
             document.getElementById('detail-kcal').innerText = p.kcal ? p.kcal + ' Kcal' : '';
             document.getElementById('detail-kcal').style.display = p.kcal ? 'block' : 'none';
-            
-            // Reset fields
             document.getElementById('detail-qty').innerText = "1";
             document.getElementById('detail-note').value = "";
             
-            // Show Page
-            document.getElementById('page-product-detail').classList.remove('hidden');
-            document.getElementById('cart-bar').classList.add('translate-y-32'); // Hide cart bar
+            // แก้ไข: แสดงหน้า Detail โดยการใส่ class active
+            const page = document.getElementById('page-product-detail');
+            page.classList.remove('hidden');
+            page.classList.add('active');
+            
+            document.getElementById('cart-bar').classList.add('translate-y-32');
         }
 
         function adjustDetailQty(delta) {
@@ -410,63 +406,17 @@
             const qty = parseInt(document.getElementById('detail-qty').innerText);
             const note = document.getElementById('detail-note').value.trim();
             const p = allProducts.find(x => x.id == currentDetailId);
-
-            // Add to Cart
             if (cart[currentDetailId]) {
                 cart[currentDetailId].quantity += qty;
-                if(note) cart[currentDetailId].note = note; // Overwrite note if new one provided
+                if(note) cart[currentDetailId].note = note;
             } else {
                 cart[currentDetailId] = { ...p, quantity: qty, note: note };
             }
-
-            // Close Page & Update UI
             goBack();
             updateCartUI();
         }
 
-        // --- CART SYSTEM ---
-        function updateCartUI() {
-            const items = Object.values(cart);
-            const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
-            const totalPrice = items.reduce((sum, i) => sum + (i.price * i.quantity), 0);
-            
-            document.getElementById('cart-count').innerText = totalQty;
-            document.getElementById('cart-total').innerText = totalPrice.toLocaleString() + ' ฿';
-            document.getElementById('final-total').innerText = totalPrice.toLocaleString() + ' ฿';
-
-            const bar = document.getElementById('cart-bar');
-            if (totalQty > 0 && document.getElementById('page-home').classList.contains('active')) {
-                bar.classList.remove('translate-y-32');
-            } else {
-                bar.classList.add('translate-y-32');
-            }
-            renderCartItems();
-        }
-
-        function renderCartItems() {
-            const container = document.getElementById('cart-items-container');
-            container.innerHTML = "";
-            Object.values(cart).forEach(item => {
-                const noteHtml = item.note ? `<p class="text-xs text-mk-red"><i class="far fa-edit"></i> ${item.note}</p>` : '';
-                container.innerHTML += `
-                    <div class="flex justify-between border-b pb-3 mb-3 last:border-0 last:mb-0 last:pb-0">
-                        <div class="flex space-x-3">
-                            <img src="${item.image}" class="w-12 h-12 rounded object-cover bg-gray-100">
-                            <div>
-                                <p class="font-bold text-sm text-gray-800">${item.name}</p>
-                                <p class="text-xs text-gray-500">${item.price} x ${item.quantity}</p>
-                                ${noteHtml}
-                            </div>
-                        </div>
-                        <div class="font-bold text-sm self-center">${(item.price * item.quantity).toLocaleString()}</div>
-                        <button onclick="removeFromCart('${item.id}')" class="text-gray-400 self-center ml-2"><i class="fas fa-trash"></i></button>
-                    </div>`;
-            });
-        }
-
-        function removeFromCart(id) { delete cart[id]; updateCartUI(); if(Object.keys(cart).length===0) closeCheckoutModal(); }
-
-        // --- HISTORY DETAIL ---
+        // --- HISTORY ---
         function fetchHistory() {
             const list = document.getElementById('history-list');
             list.innerHTML = '<p class="text-center text-gray-400 mt-10">กำลังโหลด...</p>';
@@ -479,7 +429,6 @@
                         let items = []; try { items = JSON.parse(order.items); } catch(e){ items=[{name:order.items,quantity:1,price:0}]; }
                         const total = items.reduce((sum,i)=>sum+(i.price*i.quantity),0);
                         const safeData = encodeURIComponent(JSON.stringify({...order, items, total}));
-                        
                         let stColor = "bg-gray-100 text-gray-600";
                         if(order.status.includes('รอ')) stColor="bg-yellow-100 text-yellow-700";
                         if(order.status.includes('ส่ง')||order.status.includes('เสร็จ')) stColor="bg-green-100 text-green-600";
@@ -503,7 +452,6 @@
             document.getElementById('hist-detail-date').innerText = data.date;
             document.getElementById('hist-detail-status-box').innerText = data.status;
             document.getElementById('hist-detail-total').innerText = data.total.toLocaleString() + ' ฿';
-            
             const cont = document.getElementById('hist-detail-items');
             cont.innerHTML = "";
             data.items.forEach(i => {
@@ -513,307 +461,68 @@
                         <span class="font-medium">${(i.price*i.quantity).toLocaleString()}</span>
                     </div>`;
             });
-            document.getElementById('page-history-detail').classList.remove('hidden');
+            
+            // แก้ไข: แสดงหน้า History Detail โดยใส่ class active
+            const page = document.getElementById('page-history-detail');
+            page.classList.remove('hidden');
+            page.classList.add('active');
         }
 
-        // --- SUBMIT ---
-        document.getElementById('orderForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('submitBtn');
-            btn.innerHTML = 'กำลังส่ง...'; btn.disabled = true;
-            
-            const fileInput = document.getElementById('slip');
-            let base64 = "";
-            if (fileInput.files.length) {
-                base64 = await new Promise(r => { const rd = new FileReader(); rd.onload=()=>r(rd.result); rd.readAsDataURL(fileInput.files[0]); });
-            }
-
+        // --- CART UI ---
+        function updateCartUI() {
             const items = Object.values(cart);
-            const total = items.reduce((s,i)=>s+(i.price*i.quantity),0);
-            
-            const payload = {
-                lineUid: userLineUid,
-                name: document.getElementById('checkout-name').value,
-                telephone: document.getElementById('checkout-tel').value,
-                address: document.getElementById('checkout-address').value,
-                image: base64,
-                orderDetails: items,
-                totalPrice: total
-            };
-
-            fetch(GAS_URL, { method: 'POST', mode: 'no-cors', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(payload)})
-            .then(() => { alert("สั่งซื้อสำเร็จ!"); liff.closeWindow(); })
-            .catch(() => { alert("Error"); btn.disabled=false; btn.innerHTML="ยืนยันสั่งซื้อ"; });
-        });
-
-        // --- HELPERS (Same as before: Profile Load/Save, Search, Categories, Modals) ---
-        function loadProfileLocal() {
-            const d = localStorage.getItem('mk_profile');
-            if(d) {
-                const p = JSON.parse(d);
-                document.getElementById('prof-name').value = p.name;
-                document.getElementById('prof-tel').value = p.tel;
-                document.getElementById('prof-address').value = p.address;
-                userProfileData = p;
+            const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
+            const totalPrice = items.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+            document.getElementById('cart-count').innerText = totalQty;
+            document.getElementById('cart-total').innerText = totalPrice.toLocaleString() + ' ฿';
+            document.getElementById('final-total').innerText = totalPrice.toLocaleString() + ' ฿';
+            const bar = document.getElementById('cart-bar');
+            if (totalQty > 0 && document.getElementById('page-home').classList.contains('active')) {
+                bar.classList.remove('translate-y-32');
+            } else {
+                bar.classList.add('translate-y-32');
             }
+            renderCartItems();
         }
-        function saveProfile() {
-            const p = {
-                name: document.getElementById('prof-name').value,
-                tel: document.getElementById('prof-tel').value,
-                address: document.getElementById('prof-address').value
-            };
-            localStorage.setItem('mk_profile', JSON.stringify(p));
-            userProfileData = p;
-            alert('บันทึกแล้ว');
-        }
-        function searchProduct(k) {
-            if(!k) renderProducts(allProducts);
-            else renderProducts(allProducts.filter(p=>p.name.toLowerCase().includes(k.toLowerCase())));
-        }
-        function setupCategories(products) {
-            const categories = [...new Set(products.map(p => p.category))];
-            const container = document.getElementById('category-container');
-            container.innerHTML = '<button onclick="filterCategory(\'all\', this)" class="category-btn active whitespace-nowrap px-4 py-1 rounded-full border border-gray-300 text-sm text-gray-600 transition mx-1">ทั้งหมด</button>';
-            categories.forEach(cat => {
-                if(!cat) return;
-                const btn = document.createElement('button');
-                btn.className = 'category-btn whitespace-nowrap px-4 py-1 rounded-full border border-gray-300 text-sm text-gray-600 transition mx-1';
-                btn.innerText = cat;
-                btn.onclick = () => filterCategory(cat, btn);
-                container.appendChild(btn);
+        function renderCartItems() {
+            const container = document.getElementById('cart-items-container');
+            container.innerHTML = "";
+            Object.values(cart).forEach(item => {
+                const noteHtml = item.note ? `<p class="text-xs text-mk-red"><i class="far fa-edit"></i> ${item.note}</p>` : '';
+                container.innerHTML += `
+                    <div class="flex justify-between border-b pb-3 mb-3 last:border-0 last:mb-0 last:pb-0">
+                        <div class="flex space-x-3">
+                            <img src="${item.image}" class="w-12 h-12 rounded object-cover bg-gray-100">
+                            <div><p class="font-bold text-sm text-gray-800">${item.name}</p><p class="text-xs text-gray-500">${item.price} x ${item.quantity}</p>${noteHtml}</div>
+                        </div>
+                        <div class="font-bold text-sm self-center">${(item.price * item.quantity).toLocaleString()}</div>
+                        <button onclick="removeFromCart('${item.id}')" class="text-gray-400 self-center ml-2"><i class="fas fa-trash"></i></button>
+                    </div>`;
             });
         }
-        function filterCategory(cat, btn) {
-            document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active', 'border-mk-red', 'text-white'));
-            btn.classList.add('active');
-            if(cat==='all') renderProducts(allProducts);
-            else renderProducts(allProducts.filter(p=>p.category===cat));
-        }
-        function openCheckoutModal() { 
-            document.getElementById('checkout-modal').classList.remove('hidden'); 
-            if(userProfileData.name) document.getElementById('checkout-name').value = userProfileData.name;
-            if(userProfileData.tel) document.getElementById('checkout-tel').value = userProfileData.tel;
-            if(userProfileData.address) document.getElementById('checkout-address').value = userProfileData.address;
-        }
+        function removeFromCart(id) { delete cart[id]; updateCartUI(); if(Object.keys(cart).length===0) closeCheckoutModal(); }
+        function openCheckoutModal() { document.getElementById('checkout-modal').classList.remove('hidden'); if(userProfileData.name) document.getElementById('checkout-name').value = userProfileData.name; if(userProfileData.tel) document.getElementById('checkout-tel').value = userProfileData.tel; if(userProfileData.address) document.getElementById('checkout-address').value = userProfileData.address; }
         function closeCheckoutModal() { document.getElementById('checkout-modal').classList.add('hidden'); }
-        
-        // Map Logic (Minimal for brevity, same as previous)
+
+        // --- UTILS (Map, AI, etc.) ---
         function openMapModal() { document.getElementById('map-modal').classList.remove('hidden'); if(!map){map=L.map('map').setView([13.7563,100.5018],15);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);panToCurrentLocation();}else setTimeout(()=>map.invalidateSize(),100); }
         function closeMapModal() { document.getElementById('map-modal').classList.add('hidden'); }
         function panToCurrentLocation() { navigator.geolocation.getCurrentPosition(p=>map.setView([p.coords.latitude,p.coords.longitude],17)); }
         function confirmLocation() { const c=map.getCenter(); document.getElementById('checkout-address').value += ` (พิกัด: ${c.lat.toFixed(5)},${c.lng.toFixed(5)})`; closeMapModal(); }
-
-
-            function setAiMode(mode) {
-                aiMode = mode;
-                const btnBudget = document.getElementById('btn-mode-budget');
-                const btnKcal = document.getElementById('btn-mode-kcal');
-                const label = document.getElementById('ai-label');
-                const slider = document.getElementById('ai-slider');
-                const input = document.getElementById('ai-value');
-            
-                if (mode === 'budget') {
-                    btnBudget.className = "flex-1 py-2 rounded-md text-sm font-bold bg-white shadow text-mk-red transition";
-                    btnKcal.className = "flex-1 py-2 rounded-md text-sm font-bold text-gray-500 transition";
-                    label.innerText = "งบประมาณไม่เกิน (บาท)";
-                    slider.min = 50; slider.max = 1000; slider.value = 200;
-                    input.value = 200;
-                } else {
-                    btnKcal.className = "flex-1 py-2 rounded-md text-sm font-bold bg-white shadow text-mk-red transition";
-                    btnBudget.className = "flex-1 py-2 rounded-md text-sm font-bold text-gray-500 transition";
-                    label.innerText = "พลังงานไม่เกิน (Kcal)";
-                    slider.min = 200; slider.max = 1500; slider.value = 500;
-                    input.value = 500;
-                }
-            }
-            
-            function adjustAiValue(delta) {
-                const input = document.getElementById('ai-value');
-                const slider = document.getElementById('ai-slider');
-                let val = parseInt(input.value) + delta;
-                input.value = val;
-                slider.value = val;
-            }
-            
-            function syncAiValue(val) {
-                document.getElementById('ai-value').value = val;
-            }
-            
-            // ** หัวใจหลัก: ฟังก์ชันสุ่มจัดเซต **
-            function generateAiSet() {
-                const limit = parseInt(document.getElementById('ai-value').value);
-                const resultSec = document.getElementById('ai-result');
-                const listContainer = document.getElementById('ai-items-list');
-                
-                // แยกหมวดหมู่สินค้า
-                // (ปรับคีย์เวิร์ดให้ตรงกับ Category ในชีทจริงของคุณ)
-                const mains = allProducts.filter(p => !p.category.includes('น้ำ') && !p.category.includes('เครื่องดื่ม') && !p.category.includes('หวาน'));
-                const drinks = allProducts.filter(p => p.category.includes('น้ำ') || p.category.includes('เครื่องดื่ม'));
-                const desserts = allProducts.filter(p => p.category.includes('หวาน') || p.category.includes('ทานเล่น') || p.category.includes('ติ่มซำ'));
-            
-                let bestSet = [];
-                let attempts = 0;
-                let found = false;
-            
-                // ลองสุ่ม 50 ครั้ง เพื่อหาเซตที่ลงตัวที่สุด
-                while (attempts < 50 && !found) {
-                    let set = [];
-                    let currentTotal = 0;
-                    let currentKcal = 0;
-            
-                    // 1. เลือกจานหลัก (บังคับมี)
-                    const randomMain = mains[Math.floor(Math.random() * mains.length)];
-                    if(randomMain) {
-                        set.push(randomMain);
-                        currentTotal += randomMain.price;
-                        currentKcal += (randomMain.kcal || 0);
-                    }
-            
-                    // 2. เลือกเครื่องดื่ม (สุ่ม 70% ที่จะมี)
-                    if (drinks.length > 0 && Math.random() > 0.3) {
-                        const randomDrink = drinks[Math.floor(Math.random() * drinks.length)];
-                        set.push(randomDrink);
-                        currentTotal += randomDrink.price;
-                        currentKcal += (randomDrink.kcal || 0);
-                    }
-            
-                    // 3. เลือกของหวาน (สุ่ม 50% ที่จะมี)
-                    if (desserts.length > 0 && Math.random() > 0.5) {
-                        const randomDessert = desserts[Math.floor(Math.random() * desserts.length)];
-                        set.push(randomDessert);
-                        currentTotal += randomDessert.price;
-                        currentKcal += (randomDessert.kcal || 0);
-                    }
-            
-                    // ตรวจสอบเงื่อนไข
-                    if (aiMode === 'budget') {
-                        // ต้องราคาไม่เกินงบ และ ต้องไม่ถูกเกินไป (ให้ใกล้เคียงงบ 80%)
-                        if (currentTotal <= limit && currentTotal > (limit * 0.5)) {
-                            bestSet = set;
-                            found = true;
-                        }
-                    } else {
-                        // ต้องแคลไม่เกิน
-                        if (currentKcal <= limit && currentKcal > (limit * 0.6)) {
-                            bestSet = set;
-                            found = true;
-                        }
-                    }
-                    attempts++;
-                }
-            
-                if (bestSet.length === 0) {
-                    alert("ขออภัย ไม่พบเซตที่ตรงตามเงื่อนไข ลองเพิ่มงบอีกนิดนะครับ");
-                    return;
-                }
-            
-                currentAiSet = bestSet; // เก็บไว้กดลงตะกร้า
-            
-                // แสดงผล
-                listContainer.innerHTML = "";
-                let totalPrice = 0;
-                let totalKcal = 0;
-            
-                bestSet.forEach(p => {
-                    totalPrice += p.price;
-                    totalKcal += (p.kcal || 0);
-                    listContainer.innerHTML += `
-                        <div class="flex items-center p-3">
-                            <img src="${p.image}" class="w-12 h-12 rounded-lg object-cover bg-gray-100">
-                            <div class="ml-3 flex-grow">
-                                <p class="font-bold text-sm text-gray-800">${p.name}</p>
-                                <p class="text-xs text-gray-500">${p.category} | ${p.kcal || '-'} Kcal</p>
-                            </div>
-                            <p class="font-bold text-mk-red">${p.price} ฿</p>
-                        </div>
-                    `;
-                });
-            
-                document.getElementById('ai-total-price').innerText = totalPrice + " ฿";
-                document.getElementById('ai-total-kcal').innerText = totalKcal + " Kcal";
-                resultSec.classList.remove('hidden');
-            
-                // Generate Similar Items (ทางเลือก)
-                generateSimilarItems(bestSet[0]); // อิงจากจานหลัก
-            }
-            
-            // สร้างรายการ Similar (ทางเลือกอื่น)
-            function generateSimilarItems(mainDish) {
-                const container = document.getElementById('ai-similar');
-                const list = document.getElementById('ai-similar-list');
-                
-                // หาเมนูในหมวดเดียวกัน แต่ไม่ใช่ตัวเดิม
-                const similars = allProducts
-                    .filter(p => p.category === mainDish.category && p.id !== mainDish.id)
-                    .sort(() => 0.5 - Math.random()) // Shuffle
-                    .slice(0, 2); // เอามา 2 อัน
-            
-                if (similars.length === 0) {
-                    container.classList.add('hidden');
-                    return;
-                }
-            
-                list.innerHTML = "";
-                similars.forEach(p => {
-                    list.innerHTML += `
-                        <div onclick="replaceMainDish('${p.id}')" class="bg-white p-2 rounded border flex justify-between items-center cursor-pointer hover:bg-gray-50">
-                            <div class="flex items-center">
-                                 <img src="${p.image}" class="w-8 h-8 rounded object-cover">
-                                 <span class="text-xs font-bold ml-2 text-gray-700">${p.name}</span>
-                            </div>
-                            <span class="text-xs text-mk-red font-bold">เปลี่ยน <i class="fas fa-exchange-alt"></i></span>
-                        </div>
-                    `;
-                });
-                container.classList.remove('hidden');
-            }
-            
-            // ฟังก์ชันกด "เปลี่ยน" จานหลักในเซต
-            function replaceMainDish(newId) {
-                const newMain = allProducts.find(p => p.id == newId);
-                // แทนที่ตัวแรกใน currentAiSet (สมมติว่าตัวแรกคือ Main เสมอตาม Logic)
-                currentAiSet[0] = newMain;
-                
-                // Re-render
-                const listContainer = document.getElementById('ai-items-list');
-                listContainer.innerHTML = "";
-                let totalPrice = 0;
-                let totalKcal = 0;
-            
-                currentAiSet.forEach(p => {
-                    totalPrice += p.price;
-                    totalKcal += (p.kcal || 0);
-                    listContainer.innerHTML += `
-                        <div class="flex items-center p-3">
-                            <img src="${p.image}" class="w-12 h-12 rounded-lg object-cover bg-gray-100">
-                            <div class="ml-3 flex-grow">
-                                <p class="font-bold text-sm text-gray-800">${p.name}</p>
-                                <p class="text-xs text-gray-500">${p.category} | ${p.kcal || '-'} Kcal</p>
-                            </div>
-                            <p class="font-bold text-mk-red">${p.price} ฿</p>
-                        </div>
-                    `;
-                });
-                document.getElementById('ai-total-price').innerText = totalPrice + " ฿";
-                document.getElementById('ai-total-kcal').innerText = totalKcal + " Kcal";
-            }
-            
-            function addAiSetToCart() {
-                currentAiSet.forEach(p => {
-                    // Reuse existing addToCart logic but silent
-                    if (cart[p.id]) cart[p.id].quantity++;
-                    else cart[p.id] = { ...p, quantity: 1 };
-                });
-                
-                updateCartUI();
-                
-                // Animation/Feedback
-                alert(`เพิ่ม ${currentAiSet.length} รายการลงตะกร้าแล้ว!`);
-                
-                // Switch back to Home to see cart
-                switchPage('home');
-            }
+        
+        function setAiMode(mode) { aiMode = mode; const bB = document.getElementById('btn-mode-budget'); const bK = document.getElementById('btn-mode-kcal'); const lb = document.getElementById('ai-label'); const sl = document.getElementById('ai-slider'); const inp = document.getElementById('ai-value'); if (mode === 'budget') { bB.className = "flex-1 py-2 rounded-md text-sm font-bold bg-white shadow text-mk-red transition"; bK.className = "flex-1 py-2 rounded-md text-sm font-bold text-gray-500 transition"; lb.innerText = "งบประมาณไม่เกิน (บาท)"; sl.min = 50; sl.max = 1000; sl.value = 200; inp.value = 200; } else { bK.className = "flex-1 py-2 rounded-md text-sm font-bold bg-white shadow text-mk-red transition"; bB.className = "flex-1 py-2 rounded-md text-sm font-bold text-gray-500 transition"; lb.innerText = "พลังงานไม่เกิน (Kcal)"; sl.min = 200; sl.max = 1500; sl.value = 500; inp.value = 500; } }
+        function adjustAiValue(d) { const i = document.getElementById('ai-value'); const s = document.getElementById('ai-slider'); let v = parseInt(i.value) + d; i.value = v; s.value = v; }
+        function syncAiValue(v) { document.getElementById('ai-value').value = v; }
+        function generateAiSet() { const limit = parseInt(document.getElementById('ai-value').value); const listContainer = document.getElementById('ai-items-list'); const mains = allProducts.filter(p => !p.category.includes('น้ำ') && !p.category.includes('เครื่องดื่ม') && !p.category.includes('หวาน')); const drinks = allProducts.filter(p => p.category.includes('น้ำ') || p.category.includes('เครื่องดื่ม')); const desserts = allProducts.filter(p => p.category.includes('หวาน') || p.category.includes('ทานเล่น')); let bestSet = []; let attempts = 0; let found = false; while (attempts < 50 && !found) { let set = []; let currentTotal = 0; let currentKcal = 0; const rMain = mains[Math.floor(Math.random() * mains.length)]; if(rMain) { set.push(rMain); currentTotal += rMain.price; currentKcal += (rMain.kcal || 0); } if (drinks.length > 0 && Math.random() > 0.3) { const rDrink = drinks[Math.floor(Math.random() * drinks.length)]; set.push(rDrink); currentTotal += rDrink.price; currentKcal += (rDrink.kcal || 0); } if (desserts.length > 0 && Math.random() > 0.5) { const rDessert = desserts[Math.floor(Math.random() * desserts.length)]; set.push(rDessert); currentTotal += rDessert.price; currentKcal += (rDessert.kcal || 0); } if (aiMode === 'budget') { if (currentTotal <= limit && currentTotal > (limit * 0.5)) { bestSet = set; found = true; } } else { if (currentKcal <= limit && currentKcal > (limit * 0.6)) { bestSet = set; found = true; } } attempts++; } if (bestSet.length === 0) { alert("ไม่พบเซตที่ตรงเงื่อนไข"); return; } currentAiSet = bestSet; listContainer.innerHTML = ""; let tp = 0; let tk = 0; bestSet.forEach(p => { tp += p.price; tk += (p.kcal || 0); listContainer.innerHTML += `<div class="flex items-center p-3"><img src="${p.image}" class="w-12 h-12 rounded-lg object-cover bg-gray-100"><div class="ml-3 flex-grow"><p class="font-bold text-sm text-gray-800">${p.name}</p><p class="text-xs text-gray-500">${p.category}</p></div><p class="font-bold text-mk-red">${p.price} ฿</p></div>`; }); document.getElementById('ai-total-price').innerText = tp + " ฿"; document.getElementById('ai-total-kcal').innerText = tk + " Kcal"; document.getElementById('ai-result').classList.remove('hidden'); }
+        function addAiSetToCart() { currentAiSet.forEach(p => { if (cart[p.id]) cart[p.id].quantity++; else cart[p.id] = { ...p, quantity: 1 }; }); updateCartUI(); alert(`เพิ่ม ${currentAiSet.length} รายการแล้ว!`); switchPage('home'); }
+        
+        function searchProduct(k) { if(!k) renderProducts(allProducts); else renderProducts(allProducts.filter(p=>p.name.toLowerCase().includes(k.toLowerCase()))); }
+        function setupCategories(products) { const categories = [...new Set(products.map(p => p.category))]; const container = document.getElementById('category-container'); container.innerHTML = '<button onclick="filterCategory(\'all\', this)" class="category-btn active whitespace-nowrap px-4 py-1 rounded-full border border-gray-300 text-sm text-gray-600 transition mx-1">ทั้งหมด</button>'; categories.forEach(cat => { if(!cat) return; const btn = document.createElement('button'); btn.className = 'category-btn whitespace-nowrap px-4 py-1 rounded-full border border-gray-300 text-sm text-gray-600 transition mx-1'; btn.innerText = cat; btn.onclick = () => filterCategory(cat, btn); container.appendChild(btn); }); }
+        function filterCategory(cat, btn) { document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active', 'border-mk-red', 'text-white')); btn.classList.add('active'); if(cat==='all') renderProducts(allProducts); else renderProducts(allProducts.filter(p=>p.category===cat)); }
+        function loadProfileLocal() { const d = localStorage.getItem('mk_profile'); if(d) { const p = JSON.parse(d); document.getElementById('prof-name').value = p.name; document.getElementById('prof-tel').value = p.tel; document.getElementById('prof-address').value = p.address; userProfileData = p; } }
+        function saveProfile() { const p = { name: document.getElementById('prof-name').value, tel: document.getElementById('prof-tel').value, address: document.getElementById('prof-address').value }; localStorage.setItem('mk_profile', JSON.stringify(p)); userProfileData = p; alert('บันทึกแล้ว'); }
+        
+        document.getElementById('orderForm').addEventListener('submit', async (e) => { e.preventDefault(); const btn = document.getElementById('submitBtn'); btn.innerHTML = 'กำลังส่ง...'; btn.disabled = true; const fileInput = document.getElementById('slip'); let base64 = ""; if (fileInput.files.length) { base64 = await new Promise(r => { const rd = new FileReader(); rd.onload=()=>r(rd.result); rd.readAsDataURL(fileInput.files[0]); }); } const items = Object.values(cart); const total = items.reduce((s,i)=>s+(i.price*i.quantity),0); const payload = { lineUid: userLineUid, name: document.getElementById('checkout-name').value, telephone: document.getElementById('checkout-tel').value, address: document.getElementById('checkout-address').value, image: base64, orderDetails: items, totalPrice: total }; fetch(GAS_URL, { method: 'POST', mode: 'no-cors', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(payload)}).then(() => { alert("สั่งซื้อสำเร็จ!"); liff.closeWindow(); }).catch(() => { alert("Error"); btn.disabled=false; btn.innerHTML="ยืนยันสั่งซื้อ"; }); });
 
         main();
     </script>
