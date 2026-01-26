@@ -68,28 +68,35 @@
                     </button>
                 </div>
             </div>
+
             <div class="px-4 mt-[-15px]">
                 <div class="bg-white rounded-lg shadow-md p-2 flex items-center border">
                     <i class="fas fa-search text-gray-400 ml-2"></i>
                     <input type="text" placeholder="ค้นหาเมนู..." class="w-full ml-3 outline-none text-sm" onkeyup="searchProduct(this.value)">
                 </div>
             </div>
-            <div class="px-4 mt-4 overflow-hidden">
-                <div class="flex overflow-x-auto space-x-3 hide-scroll snap-x">
-                    <img src="https://lh3.googleusercontent.com/d/14NyLzdexNz3oYpByH2_aUAgs-pne5Txa?auto=format&fit=crop&w=500&q=60" class="w-[85%] h-32 object-cover rounded-xl shadow snap-center flex-shrink-0">
-                    <img src="https://lh3.googleusercontent.com/d/1E_LckoHiDLUg0xZMV-J2uTvry-qIHBfr?auto=format&fit=crop&w=500&q=60" class="w-[85%] h-32 object-cover rounded-xl shadow snap-center flex-shrink-0">
-                    <img src="https://lh3.googleusercontent.com/d/1DyJRExYYMMqK7E97vYw3YIeHG-EdViLw?auto=format&fit=crop&w=500&q=60" class="w-[85%] h-32 object-cover rounded-xl shadow snap-center flex-shrink-0">
+
+            <div class="px-4 mt-4 overflow-hidden relative">
+                <div id="banner-slider" class="flex overflow-x-auto space-x-3 hide-scroll snap-x scroll-smooth">
+                    <img src="https://lh3.googleusercontent.com/d/14NyLzdexNz3oYpByH2_aUAgs-pne5Txa?auto=format&fit=crop&w=500&q=60" class="w-[85%] h-36 object-cover rounded-xl shadow snap-center flex-shrink-0">
+                    <img src="https://lh3.googleusercontent.com/d/1E_LckoHiDLUg0xZMV-J2uTvry-qIHBfr?auto=format&fit=crop&w=500&q=60" class="w-[85%] h-36 object-cover rounded-xl shadow snap-center flex-shrink-0">
+                    <img src="https://lh3.googleusercontent.com/d/1DyJRExYYMMqK7E97vYw3YIeHG-EdViLw?auto=format&fit=crop&w=500&q=60" class="w-[85%] h-36 object-cover rounded-xl shadow snap-center flex-shrink-0">
                 </div>
             </div>
+
             <div id="category-container" class="flex overflow-x-auto space-x-2 p-3 hide-scroll mt-1"></div>
         </div>
+
         <div id="closed-alert" class="hidden bg-gray-800 text-white p-4 text-center mx-4 rounded-xl mt-4">
             <i class="fas fa-store-slash text-2xl mb-2"></i>
             <p class="font-bold">ร้านปิดให้บริการชั่วคราว</p>
             <p class="text-xs opacity-75">กรุณากลับมาใหม่ภายหลัง</p>
         </div>
+
         <div class="container mx-auto p-4">
-            <div id="product-list" class="grid grid-cols-2 gap-4 pb-16"></div>
+            <div id="product-list" class="grid grid-cols-2 gap-4 pb-16">
+                <div class="text-center col-span-2 text-gray-400 mt-10">กำลังโหลดเมนู...</div>
+            </div>
         </div>
     </section>
 
@@ -505,6 +512,16 @@
         function setAiMode(mode) { aiMode = mode; const bB = document.getElementById('btn-mode-budget'); const bK = document.getElementById('btn-mode-kcal'); const lb = document.getElementById('ai-label'); const sl = document.getElementById('ai-slider'); const inp = document.getElementById('ai-value'); if (mode === 'budget') { bB.className = "flex-1 py-2 rounded-md text-sm font-bold bg-white shadow text-mk-red transition"; bK.className = "flex-1 py-2 rounded-md text-sm font-bold text-gray-500 transition"; lb.innerText = "งบประมาณไม่เกิน (บาท)"; sl.min = 50; sl.max = 1000; sl.value = 200; inp.value = 200; } else { bK.className = "flex-1 py-2 rounded-md text-sm font-bold bg-white shadow text-mk-red transition"; bB.className = "flex-1 py-2 rounded-md text-sm font-bold text-gray-500 transition"; lb.innerText = "พลังงานไม่เกิน (Kcal)"; sl.min = 200; sl.max = 1500; sl.value = 500; inp.value = 500; } }
         function adjustAiValue(d) { const i = document.getElementById('ai-value'); const s = document.getElementById('ai-slider'); let v = parseInt(i.value) + d; i.value = v; s.value = v; }
         function syncAiValue(v) { document.getElementById('ai-value').value = v; }
+        
+        // Define openCheckoutModal in global scope so it's accessible
+        function openCheckoutModal() { 
+            if(storeStatus === 'CLOSE') { alert('ร้านปิดอยู่ครับ'); return; } 
+            document.getElementById('checkout-modal').classList.remove('hidden'); 
+            if(userProfileData.name) document.getElementById('checkout-name').value = userProfileData.name; 
+            if(userProfileData.tel) document.getElementById('checkout-tel').value = userProfileData.tel; 
+            if(userProfileData.address) document.getElementById('checkout-address').value = userProfileData.address; 
+            updateCartUI(); 
+        }
 
         document.getElementById('orderForm').addEventListener('submit', async (e) => { e.preventDefault(); const btn = document.getElementById('submitBtn'); btn.innerHTML = 'กำลังส่ง...'; btn.disabled = true; const fileInput = document.getElementById('slip'); let base64 = ""; if (fileInput.files.length) { base64 = await new Promise(r => { const rd = new FileReader(); rd.onload=()=>r(rd.result); rd.readAsDataURL(fileInput.files[0]); }); } const items = Object.values(cart); const total = items.reduce((s,i)=>s+(i.price*i.quantity),0); const payload = { lineUid: userLineUid, name: document.getElementById('checkout-name').value, telephone: document.getElementById('checkout-tel').value, address: document.getElementById('checkout-address').value, image: base64, orderDetails: items, totalPrice: total }; fetch(GAS_URL, { method: 'POST', mode: 'no-cors', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(payload)}).then(() => { alert("สั่งซื้อสำเร็จ!"); liff.closeWindow(); }).catch(() => { alert("Error"); btn.disabled=false; btn.innerHTML="ยืนยันสั่งซื้อ"; }); });
 
