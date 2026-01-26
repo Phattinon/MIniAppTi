@@ -36,9 +36,10 @@
         @keyframes pop { 0% { transform: scale(0); } 90% { transform: scale(1.2); } 100% { transform: scale(1); } }
 
         .store-closed-overlay { filter: grayscale(100%); pointer-events: none; opacity: 0.6; }
-        
-        /* Smooth Scroll for Banner */
         .scroll-smooth { scroll-behavior: smooth; }
+        
+        /* Selected Branch Highlight */
+        .branch-selected { border-color: #ce1126; background-color: #FEF2F2; }
     </style>
 </head>
 <body>
@@ -54,8 +55,9 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-3">
-                    <button onclick="openBranchModal()" class="relative p-1 text-white hover:text-gray-200">
-                        <i class="fas fa-map-marker-alt text-xl"></i>
+                    <button onclick="openBranchModal()" class="relative p-1 text-white hover:text-gray-200 flex flex-col items-center">
+                        <i class="fas fa-map-marker-alt text-lg"></i>
+                        <span class="text-[8px] font-bold" id="selected-branch-name-mini">เลือกสาขา</span>
                     </button>
                     
                     <span id="store-status-badge" class="bg-green-500 text-[10px] px-2 py-0.5 rounded-full font-bold hidden">OPEN</span>
@@ -73,11 +75,13 @@
                 </div>
             </div>
 
-            <div class="px-4 mt-4 overflow-hidden relative">
-                <div id="banner-slider" class="flex overflow-x-auto space-x-3 hide-scroll snap-x scroll-smooth">
-                    <img src="https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=500&q=60" class="w-[85%] h-36 object-cover rounded-xl shadow snap-center flex-shrink-0">
-                    <img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=500&q=60" class="w-[85%] h-36 object-cover rounded-xl shadow snap-center flex-shrink-0">
-                    <img src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=500&q=60" class="w-[85%] h-36 object-cover rounded-xl shadow snap-center flex-shrink-0">
+            <div class="px-4 mt-4 overflow-hidden">
+
+                <div class="flex overflow-x-auto space-x-3 hide-scroll snap-x">
+                    <img src="https://lh3.googleusercontent.com/d/14NyLzdexNz3oYpByH2_aUAgs-pne5Txa?auto=format&fit=crop&w=500&q=60" class="w-[85%] h-32 object-cover rounded-xl shadow snap-center flex-shrink-0">
+                    <img src="https://lh3.googleusercontent.com/d/1E_LckoHiDLUg0xZMV-J2uTvry-qIHBfr?auto=format&fit=crop&w=500&q=60" class="w-[85%] h-32 object-cover rounded-xl shadow snap-center flex-shrink-0">
+                    <img src="https://lh3.googleusercontent.com/d/1DyJRExYYMMqK7E97vYw3YIeHG-EdViLw?auto=format&fit=crop&w=500&q=60" class="w-[85%] h-32 object-cover rounded-xl shadow snap-center flex-shrink-0">
+                
                 </div>
             </div>
 
@@ -199,16 +203,25 @@
     </section>
 
     <div id="branch-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[80] hidden flex items-end justify-center">
-        <div class="bg-white w-full h-[80vh] rounded-t-3xl p-6 overflow-y-auto animate-slide-up">
+        <div class="bg-white w-full h-[80vh] rounded-t-3xl p-6 overflow-y-auto animate-slide-up flex flex-col">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold">📍 ค้นหาสาขาใกล้ฉัน</h2>
+                <h2 class="text-xl font-bold">📍 เลือกสาขาที่ใช้บริการ</h2>
                 <button onclick="closeBranchModal()" class="text-gray-400"><i class="fas fa-times fa-lg"></i></button>
             </div>
-            <button onclick="findNearestBranches()" class="w-full bg-red-50 text-mk-red font-bold py-3 rounded-xl mb-4 border border-red-100 flex items-center justify-center">
-                <i class="fas fa-location-arrow mr-2"></i> ใช้ตำแหน่งปัจจุบัน
+            
+            <button onclick="findNearestBranches()" class="w-full bg-red-50 text-mk-red font-bold py-3 rounded-xl mb-4 border border-red-100 flex items-center justify-center hover:bg-red-100 transition">
+                <i class="fas fa-location-arrow mr-2 animate-pulse"></i> ค้นหาสาขาที่ใกล้ที่สุด
             </button>
-            <div id="branch-list" class="space-y-3">
-                <p class="text-center text-gray-400 mt-10">กดปุ่มด้านบนเพื่อค้นหาสาขา</p>
+
+            <div class="mb-4">
+                <div class="bg-gray-100 rounded-lg p-2 flex items-center border">
+                    <i class="fas fa-search text-gray-400 ml-2"></i>
+                    <input type="text" id="branch-search" placeholder="หรือพิมพ์ชื่อสาขา... (เช่น Siam)" class="w-full ml-3 outline-none text-sm bg-transparent" onkeyup="filterBranches()">
+                </div>
+            </div>
+
+            <div id="branch-list" class="space-y-2 flex-grow overflow-y-auto">
+                <p class="text-center text-gray-400 mt-10 text-sm">กดปุ่มด้านบนเพื่อค้นหา<br>หรือเลือกจากรายการด้านล่าง</p>
             </div>
         </div>
     </div>
@@ -259,6 +272,7 @@
         let favorites = JSON.parse(localStorage.getItem('mk_favorites') || "[]");
         let currentHistoryItem = null;
         let branchList = []; // เก็บรายชื่อสาขา
+        let selectedBranch = null; // สาขาที่เลือก
 
         async function main() {
             try {
@@ -293,22 +307,29 @@
             }, 3000); // 3 วินาที
         }
 
-        // --- 2. BRANCH LOGIC ---
+        // --- 2. BRANCH LOGIC (Auto Find & Sort) ---
         function openBranchModal() {
             document.getElementById('branch-modal').classList.remove('hidden');
-            // Fetch Branch Data if not loaded
+            // Load if empty
             if(branchList.length === 0) {
                 fetch(`${GAS_URL}?action=get_branches`)
                     .then(res => res.json())
-                    .then(data => { branchList = data; })
-                    .catch(err => console.error("Branch Load Error"));
+                    .then(data => { 
+                        branchList = data; 
+                        renderBranches(branchList);
+                    })
+                    .catch(err => {
+                        document.getElementById('branch-list').innerHTML = `<p class="text-center text-red-400 mt-10">โหลดข้อมูลไม่สำเร็จ</p>`;
+                    });
+            } else {
+                renderBranches(branchList);
             }
         }
         function closeBranchModal() { document.getElementById('branch-modal').classList.add('hidden'); }
 
         function findNearestBranches() {
             const list = document.getElementById('branch-list');
-            list.innerHTML = '<p class="text-center text-gray-400 mt-10"><i class="fas fa-circle-notch fa-spin"></i> กำลังค้นหา...</p>';
+            list.innerHTML = '<p class="text-center text-gray-400 mt-10"><i class="fas fa-circle-notch fa-spin"></i> กำลังค้นหาตำแหน่งและเรียงลำดับ...</p>';
 
             if (!navigator.geolocation) { alert("อุปกรณ์ไม่รองรับ GPS"); return; }
 
@@ -316,39 +337,83 @@
                 const myLat = position.coords.latitude;
                 const myLng = position.coords.longitude;
 
-                // คำนวณระยะทาง
-                const sortedBranches = branchList.map(b => {
-                    const dist = getDistanceFromLatLonInKm(myLat, myLng, b.lat, b.lng);
-                    return { ...b, distance: dist };
-                }).sort((a, b) => a.distance - b.distance);
-
-                // แสดงผล
-                list.innerHTML = "";
-                sortedBranches.forEach(b => {
-                    const statusColor = b.status === 'OPEN' ? 'text-green-500' : 'text-red-500';
-                    list.innerHTML += `
-                        <div class="bg-gray-50 p-3 rounded-lg border flex justify-between items-center">
-                            <div>
-                                <h4 class="font-bold text-gray-800">${b.name}</h4>
-                                <p class="text-xs text-gray-500"><i class="fas fa-location-arrow"></i> ห่าง ${b.distance.toFixed(1)} กม.</p>
-                                <p class="text-xs ${statusColor} font-bold">${b.status}</p>
-                            </div>
-                            <a href="tel:${b.tel}" class="bg-white border border-gray-200 p-2 rounded-full text-mk-red shadow-sm">
-                                <i class="fas fa-phone"></i>
-                            </a>
-                            <a href="https://www.google.com/maps/dir/?api=1&destination=${b.lat},${b.lng}" target="_blank" class="bg-mk-red p-2 rounded-full text-white shadow-sm ml-2">
-                                <i class="fas fa-directions"></i>
-                            </a>
-                        </div>
-                    `;
+                // คำนวณระยะทางทุกสาขา
+                branchList.forEach(b => {
+                    b.distanceVal = getDistanceFromLatLonInKm(myLat, myLng, b.lat, b.lng);
+                    b.distanceDisplay = b.distanceVal.toFixed(2) + " กม.";
                 });
 
+                // เรียงลำดับจากใกล้ไปไกล
+                branchList.sort((a, b) => a.distanceVal - b.distanceVal);
+
+                // Render ใหม่
+                renderBranches(branchList);
+
             }, () => {
-                list.innerHTML = '<p class="text-center text-red-400 mt-10">ไม่สามารถระบุตำแหน่งได้</p>';
+                list.innerHTML = '<p class="text-center text-red-400 mt-10">ไม่สามารถระบุตำแหน่งได้ กรุณาเปิด GPS</p>';
             });
         }
 
-        // Haversine Formula (คำนวณระยะทาง)
+        function renderBranches(list) {
+            const container = document.getElementById('branch-list');
+            container.innerHTML = "";
+            if(list.length === 0) {
+                container.innerHTML = `<p class="text-center text-gray-400 mt-4">ไม่มีข้อมูลสาขา</p>`;
+                return;
+            }
+            list.forEach((b, index) => {
+                const statusColor = b.status === 'OPEN' ? 'text-green-500' : 'text-red-500';
+                const isSelected = selectedBranch && selectedBranch.name === b.name ? 'branch-selected' : '';
+                
+                // ถ้ามีระยะทางคำนวณแล้ว ให้โชว์
+                const distanceText = b.distanceDisplay 
+                    ? `<p class="text-xs text-mk-red font-bold"><i class="fas fa-location-arrow"></i> ${b.distanceDisplay}</p>` 
+                    : `<p class="text-[10px] text-gray-400">ยังไม่คำนวณระยะ</p>`;
+
+                container.innerHTML += `
+                    <div onclick="selectBranch('${b.name}', ${index})" class="bg-gray-50 p-3 rounded-lg border cursor-pointer hover:bg-red-50 transition ${isSelected}">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-bold text-gray-800 text-sm">${b.name}</h4>
+                                <div class="mt-1">${distanceText}</div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-[10px] ${statusColor} font-bold border border-current px-1 rounded mb-1">${b.status}</p>
+                                <a href="tel:${b.tel}" class="bg-white border border-gray-200 px-2 py-1 rounded-full text-xs text-gray-500 shadow-sm inline-block">
+                                    <i class="fas fa-phone"></i> โทร
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function filterBranches() {
+            const keyword = document.getElementById('branch-search').value.toLowerCase();
+            const filtered = branchList.filter(b => b.name.toLowerCase().includes(keyword));
+            renderBranches(filtered);
+        }
+
+        function selectBranch(name, index) {
+            // Find correct object (ต้องหาจากชื่อเพราะ index อาจเพี้ยนถ้ามีการ filter หรือ sort)
+            const targetBranch = branchList.find(b => b.name === name);
+            
+            if(targetBranch) {
+                selectedBranch = targetBranch;
+                
+                // Update UI Header
+                document.getElementById('selected-branch-name-mini').innerText = targetBranch.name.substring(0, 10) + "..";
+                
+                // Highlight Selection
+                renderBranches(branchList); // Re-render to show highlight
+                
+                // Close Modal automatically for smooth UX
+                setTimeout(() => closeBranchModal(), 300);
+            }
+        }
+
+        // Haversine Formula
         function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
             var R = 6371; 
             var dLat = deg2rad(lat2-lat1);  
@@ -360,7 +425,6 @@
         function deg2rad(deg) { return deg * (Math.PI/180); }
 
         // --- (Existing Functions: setupProfileUI, switchPage, goBack, fetchProducts...) ---
-        // Note: Copy all other functions from previous code here (renderProducts, cart logic, AI, etc.)
         
         function setupProfileUI(profile) {
             document.getElementById('user-profile-icon').innerHTML = `<img src="${profile.pictureUrl}" class="w-full h-full object-cover rounded-full">`;
