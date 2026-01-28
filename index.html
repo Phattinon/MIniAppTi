@@ -523,9 +523,120 @@
             updateCartUI(); 
         }
 
-        document.getElementById('orderForm').addEventListener('submit', async (e) => { e.preventDefault(); const btn = document.getElementById('submitBtn'); btn.innerHTML = 'กำลังส่ง...'; btn.disabled = true; const fileInput = document.getElementById('slip'); let base64 = ""; if (fileInput.files.length) { base64 = await new Promise(r => { const rd = new FileReader(); rd.onload=()=>r(rd.result); rd.readAsDataURL(fileInput.files[0]); }); } const items = Object.values(cart); const total = items.reduce((s,i)=>s+(i.price*i.quantity),0); const payload = { lineUid: userLineUid, name: document.getElementById('checkout-name').value, telephone: document.getElementById('checkout-tel').value, address: document.getElementById('checkout-address').value, image: base64, orderDetails: items, totalPrice: total }; fetch(GAS_URL, { method: 'POST', mode: 'no-cors', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(payload)}).then(() => { alert("สั่งซื้อสำเร็จ!"); liff.closeWindow(); }).catch(() => { alert("Error"); btn.disabled=false; btn.innerHTML="ยืนยันสั่งซื้อ"; }); });
+        // ค้นหา document.getElementById('orderForm').addEventListener... แล้วแก้เป็นแบบนี้ครับ
 
-        main();
+        document.getElementById('orderForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            btn.innerHTML = 'กำลังส่ง...'; 
+            btn.disabled = true;
+        
+            // 1. เตรียมข้อมูล
+            const nameVal = document.getElementById('checkout-name').value;
+            const telVal = document.getElementById('checkout-tel').value;
+            const addrVal = document.getElementById('checkout-address').value;
+        
+            // --- [เพิ่มตรงนี้] บันทึกลงเครื่องทันทีที่กดสั่ง ---
+            const userProfile = { name: nameVal, tel: telVal, address: addrVal };
+            localStorage.setItem('mk_profile', JSON.stringify(userProfile));
+            userProfileData = userProfile; // อัปเดตตัวแปรในระบบ
+            
+            // อัปเดตหน้าโปรไฟล์ให้เห็นทันทีด้วย (UX)
+            document.getElementById('prof-name').value = nameVal;
+            document.getElementById('prof-tel').value = telVal;
+            document.getElementById('prof-address').value = addrVal;
+            // ------------------------------------------------
+        
+            const fileInput = document.getElementById('slip');
+            let base64 = "";
+            if (fileInput.files.length) {
+                base64 = await new Promise(r => { 
+                    const rd = new FileReader(); 
+                    rd.onload = () => r(rd.result); 
+                    rd.readAsDataURL(fileInput.files[0]); 
+                });
+            }
+        
+            const items = Object.values(cart);
+            const total = items.reduce((s, i) => s + (i.price * i.quantity), 0);
+        
+            const payload = {
+                lineUid: userLineUid,
+                name: nameVal,        // ใช้ตัวแปรที่ดึงมาข้างบน
+                telephone: telVal,    // ใช้ตัวแปรที่ดึงมาข้างบน
+                address: addrVal,     // ใช้ตัวแปรที่ดึงมาข้างบน
+                image: base64,
+                orderDetails: items,
+                totalPrice: total
+            };
+        
+            fetch(GAS_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify(payload)
+            }).then(() => {
+                alert("สั่งซื้อสำเร็จ!");
+                liff.closeWindow();
+            }).catch(() => {
+                alert("Error");
+                btn.disabled = false;
+                btn.innerHTML = "ยืนยันสั่งซื้อ";
+            });
+        });
+        // 1. เพิ่มฟังก์ชันนี้ลงไปใน Script
+function fetchUserDataFromCloud() {
+    // เช็คก่อนว่าในเครื่องมีไหม ถ้ามีแล้วไม่ต้องดึง (จะได้โหลดเร็ว)
+    if (localStorage.getItem('mk_profile')) return;
+
+    // ถ้าไม่มี ให้ไปดึงจาก Google Sheet (Action: get_user)
+    fetch(`${GAS_URL}?action=get_user&uid=${userLineUid}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.found) {
+                // ถ้าเจอข้อมูลเก่าใน Sheet ให้บันทึกลงเครื่อง
+                const p = {
+                    name: data.name,
+                    tel: data.telephone,
+                    address: data.address
+                };
+                localStorage.setItem('mk_profile', JSON.stringify(p));
+                userProfileData = p;
+
+                // เติมลงหน้า Profile
+                document.getElementById('prof-name').value = p.name;
+                document.getElementById('prof-tel').value = p.tel;
+                document.getElementById('prof-address').value = p.address;
+                
+                // เติมลงหน้า Checkout (ถ้าเปิดอยู่)
+                if(document.getElementById('checkout-name')) {
+                     document.getElementById('checkout-name').value = p.name;
+                     document.getElementById('checkout-tel').value = p.tel;
+                     document.getElementById('checkout-address').value = p.address;
+                }
+            }
+        })
+        .catch(err => console.error("Cloud fetch error:", err));
+}
+
+// 2. แก้ไขฟังก์ชัน main() ให้เรียกใช้ฟังก์ชันข้างบน
+async function main() {
+    try {
+        await liff.init({ liffId: LIFF_ID });
+        if (!liff.isLoggedIn()) liff.login();
+        else {
+            const profile = await liff.getProfile();
+            userLineUid = profile.userId;
+            setupProfileUI(profile);
+            fetchProducts();
+            loadProfileLocal(); // โหลดจากเครื่องก่อน
+            fetchHistory();
+            initBannerAutoSlide();
+            
+            fetchUserDataFromCloud(); // <--- เพิ่มบรรทัดนี้ครับ! (ดึงสำรองจาก Cloud)
+        }
+    } catch (err) { console.error(err); }
+}
     </script>
 </body>
 </html>
