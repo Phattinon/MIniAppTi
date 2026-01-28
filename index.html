@@ -245,25 +245,13 @@
     <script>
         const LIFF_ID = "2006820737-B6zOM56Y";
         const GAS_URL = "https://script.google.com/macros/s/AKfycbyL-HaoVYFxy3RRDLNXaandxLmC1dE-cCBQy6MUrRGuGMhkLP9wX82yM_025HC2WuHSbw/exec";
-        
-        let allProducts = [];
-        let cart = {}; 
-        let userLineUid = "";
-        let map, marker;
+       
+        let allProducts = [], cart = {}, userLineUid = "", map, marker;
         let userProfileData = { name: '', tel: '', address: '' };
-        let historyStack = []; 
+        let storeStatus = "OPEN", favorites = JSON.parse(localStorage.getItem('mk_favorites') || "[]");
+        let currentDetailItem = null, selectedOptions = {}, promptpayId = "0000000000", branchList = [], selectedBranch = null;
         let aiMode = 'budget';
-        let currentAiSet = [];
-        let storeStatus = "OPEN";
-        let favorites = JSON.parse(localStorage.getItem('mk_favorites') || "[]");
-        let currentHistoryItem = null;
-        let branchList = [];
-        let selectedBranch = null;
-        let promptpayId = "0000000000"; // Default, will update from server
-
-        // --- OPTIONS LOGIC ---
-        let currentDetailItem = null;
-        let selectedOptions = {}; // { "ขนาด": {label:"พิเศษ", price:10}, "ความเผ็ด": ... }
+        let currentAiSet = [], currentHistoryItem = null;
 
         async function main() {
             try {
@@ -276,95 +264,80 @@
                     fetchProducts();
                     loadProfileLocal();
                     fetchHistory();
-                    initBannerAutoSlide(); 
+                    initBannerAutoSlide();
+                    fetchUserDataFromCloud(); // [ADDED]
                 }
             } catch (err) { console.error(err); }
         }
 
-        // --- FETCH ---
+        // --- FETCH USER FROM CLOUD (ADDED) ---
+        function fetchUserDataFromCloud() {
+            if (localStorage.getItem('mk_profile')) return; // Check Local first
+            fetch(`${GAS_URL}?action=get_user&uid=${userLineUid}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.found) {
+                        const p = { name: data.name, tel: data.telephone, address: data.address };
+                        localStorage.setItem('mk_profile', JSON.stringify(p));
+                        userProfileData = p;
+                        if(document.getElementById('prof-name')) document.getElementById('prof-name').value = p.name;
+                        if(document.getElementById('prof-tel')) document.getElementById('prof-tel').value = p.tel;
+                        if(document.getElementById('prof-address')) document.getElementById('prof-address').value = p.address;
+                    }
+                })
+                .catch(err => console.error("Cloud fetch error:", err));
+        }
+
         function fetchProducts() {
             fetch(GAS_URL).then(res => res.json()).then(data => {
                 storeStatus = data.status || "OPEN";
                 allProducts = data.products || data; 
-                promptpayId = data.promptpay || promptpayId; // Get PromptPay ID
-                localStorage.setItem('mk_products_cache', JSON.stringify(data));
+                promptpayId = data.promptpay || promptpayId;
                 applyStoreStatus();
                 setupCategories(allProducts);
                 renderProducts(allProducts);
             });
         }
 
-        // --- PRODUCT DETAIL & OPTIONS ---
         function openProductDetail(id) {
             const p = allProducts.find(x => x.id == id);
-            currentDetailItem = p;
-            selectedOptions = {}; // Reset options
-
+            currentDetailItem = p; selectedOptions = {};
             document.getElementById('detail-img').src = p.image;
             document.getElementById('detail-name').innerText = p.name;
             document.getElementById('detail-cat').innerText = p.category || '';
             document.getElementById('detail-kcal').innerText = p.kcal ? p.kcal + ' Kcal' : '';
-            document.getElementById('detail-kcal').style.display = p.kcal ? 'block' : 'none';
             document.getElementById('detail-qty').innerText = "1";
             document.getElementById('detail-note').value = "";
             
-            // Render Options
-            const optionsContainer = document.getElementById('detail-options-container');
-            optionsContainer.innerHTML = "";
-            
+            const container = document.getElementById('detail-options-container');
+            container.innerHTML = "";
             if (p.options) {
                 try {
                     const options = JSON.parse(p.options);
                     options.forEach((opt, idx) => {
-                        let choicesHtml = "";
-                        opt.choices.forEach((choice, cIdx) => {
-                            const priceText = choice.price > 0 ? `+${choice.price}` : '';
-                            // Default select first option
-                            if(cIdx === 0) selectedOptions[opt.name] = choice;
-
-                            choicesHtml += `
-                                <div class="flex-1">
-                                    <input type="radio" name="opt-${idx}" id="opt-${idx}-${cIdx}" class="hidden option-input" 
-                                        ${cIdx===0 ? 'checked' : ''} 
-                                        onchange='selectOption("${opt.name}", ${JSON.stringify(choice)})'>
-                                    <label for="opt-${idx}-${cIdx}" class="block text-center border rounded-lg py-2 text-sm cursor-pointer hover:bg-gray-50 transition">
-                                        ${choice.label} <span class="text-xs text-mk-red font-bold">${priceText}</span>
-                                    </label>
-                                </div>
-                            `;
+                        let html = `<div><p class="font-bold text-gray-700 mb-2 text-sm">${opt.name}</p><div class="flex gap-2">`;
+                        opt.choices.forEach((c, cIdx) => {
+                            if(cIdx===0) selectedOptions[opt.name] = c;
+                            const priceTxt = c.price > 0 ? `+${c.price}` : '';
+                            html += `<div class="flex-1"><input type="radio" name="opt-${idx}" id="o-${idx}-${cIdx}" class="hidden option-input" ${cIdx===0?'checked':''} onchange='selectOption("${opt.name}", ${JSON.stringify(c)})'><label for="o-${idx}-${cIdx}" class="block text-center border rounded-lg py-2 text-sm cursor-pointer hover:bg-gray-50 transition">${c.label} <span class="text-xs text-mk-red">${priceTxt}</span></label></div>`;
                         });
-
-                        optionsContainer.innerHTML += `
-                            <div>
-                                <p class="font-bold text-gray-700 mb-2 text-sm">${opt.name}</p>
-                                <div class="flex space-x-2">${choicesHtml}</div>
-                            </div>
-                        `;
+                        html += `</div></div>`;
+                        container.innerHTML += html;
                     });
-                } catch(e) { console.error("Option Parse Error", e); }
+                } catch(e){}
             }
-
             updateDetailPrice();
             const page = document.getElementById('page-product-detail');
             page.classList.remove('hidden'); page.classList.add('active');
         }
 
-        function selectOption(optName, choiceObj) {
-            selectedOptions[optName] = choiceObj;
-            updateDetailPrice();
-        }
-
+        function selectOption(name, choice) { selectedOptions[name] = choice; updateDetailPrice(); }
         function updateDetailPrice() {
-            let basePrice = currentDetailItem.price;
-            let optionsPrice = 0;
-            for (let key in selectedOptions) {
-                optionsPrice += (selectedOptions[key].price || 0);
-            }
-            const totalPrice = basePrice + optionsPrice;
-            const qty = parseInt(document.getElementById('detail-qty').innerText);
-            
-            document.getElementById('detail-price').innerText = totalPrice + ' ฿';
-            document.getElementById('detail-total-btn').innerText = (totalPrice * qty).toLocaleString() + ' ฿';
+            let p = currentDetailItem.price;
+            for(let k in selectedOptions) p += (selectedOptions[k].price || 0);
+            const q = parseInt(document.getElementById('detail-qty').innerText);
+            document.getElementById('detail-price').innerText = p + ' ฿';
+            document.getElementById('detail-total-btn').innerText = (p*q).toLocaleString() + ' ฿';
         }
 
         function adjustDetailQty(delta) {
@@ -376,135 +349,208 @@
 
         function submitProductToCart() {
             if(storeStatus === 'CLOSE') { alert('ร้านปิดอยู่ครับ'); return; }
-            
             const qty = parseInt(document.getElementById('detail-qty').innerText);
             const note = document.getElementById('detail-note').value.trim();
+            const optStr = JSON.stringify(selectedOptions);
+            const cartId = currentDetailItem.id + "_" + btoa(unescape(encodeURIComponent(optStr))); 
             
-            // สร้าง Unique ID สำหรับสินค้าที่มี Option ต่างกัน (เช่น เล็ก-แห้ง vs ใหญ่-น้ำ)
-            // ใช้ JSON string ของ options เป็นส่วนหนึ่งของ ID
-            const optionsStr = JSON.stringify(selectedOptions);
-            const cartId = currentDetailItem.id + "_" + btoa(unescape(encodeURIComponent(optionsStr))); // Simple Hash
+            let price = currentDetailItem.price;
+            for(let k in selectedOptions) price += (selectedOptions[k].price || 0);
 
-            let finalPrice = currentDetailItem.price;
-            for (let key in selectedOptions) finalPrice += (selectedOptions[key].price || 0);
-
-            if (cart[cartId]) {
-                cart[cartId].quantity += qty;
-                if(note) cart[cartId].note = note;
-            } else {
-                cart[cartId] = { 
-                    ...currentDetailItem, 
-                    id: cartId, // Use composite ID in cart
-                    originalId: currentDetailItem.id,
-                    price: finalPrice, 
-                    quantity: qty, 
-                    note: note,
-                    selectedOptions: selectedOptions 
-                };
-            }
-            goBack();
-            updateCartUI();
+            if(cart[cartId]) { cart[cartId].quantity += qty; if(note) cart[cartId].note = note; }
+            else { cart[cartId] = { ...currentDetailItem, id: cartId, price: price, quantity: qty, note: note, selectedOptions: selectedOptions }; }
+            goBack(); updateCartUI();
         }
 
-        // --- CART RENDER (Show Options) ---
         function renderCartItems() {
-            const container = document.getElementById('cart-items-container');
-            container.innerHTML = "";
-            if (Object.keys(cart).length === 0) {
-                container.innerHTML = "<p class='text-center text-gray-400 py-4'>ไม่มีสินค้าในตะกร้า</p>";
-                return;
-            }
-            Object.values(cart).forEach(item => {
-                const noteHtml = item.note ? `<p class="text-xs text-mk-red"><i class="far fa-edit"></i> ${item.note}</p>` : '';
-                
-                // Render Selected Options
-                let optionsHtml = "";
-                if (item.selectedOptions && Object.keys(item.selectedOptions).length > 0) {
-                    const optText = Object.values(item.selectedOptions).map(o => o.label).join(', ');
-                    optionsHtml = `<p class="text-xs text-gray-500 bg-gray-100 px-1 rounded inline-block mt-1">${optText}</p>`;
-                }
+            const c = document.getElementById('cart-items-container');
+            c.innerHTML = "";
+            if(Object.keys(cart).length===0) { c.innerHTML="<p class='text-center text-gray-400 py-4'>ตะกร้าว่างเปล่า</p>"; return; }
+            Object.values(cart).forEach(i => {
+                let optHtml = "";
+                if(i.selectedOptions) optHtml = `<p class="text-xs text-gray-500 bg-gray-100 px-1 rounded inline-block mt-1">${Object.values(i.selectedOptions).map(o=>o.label).join(', ')}</p>`;
+                const noteHtml = i.note ? `<p class="text-xs text-mk-red"><i class="far fa-edit"></i> ${i.note}</p>` : '';
+                const minusDis = i.quantity<=1 ? 'opacity-50' : '';
+                c.innerHTML += `<div class="flex justify-between border-b pb-3 mb-3 last:border-0"><div class="flex space-x-3 w-2/3"><img src="${i.image}" class="w-12 h-12 rounded object-cover bg-gray-100 flex-shrink-0"><div><p class="font-bold text-sm text-gray-800 line-clamp-1">${i.name}</p>${optHtml}${noteHtml}<p class="text-xs text-gray-400 mt-1">${i.price} ฿</p></div></div><div class="flex flex-col items-end"><div class="flex items-center space-x-2 bg-gray-50 rounded-lg p-1 border border-gray-100"><button onclick="updateCartItemQty('${i.id}',-1)" class="w-6 h-6 flex items-center justify-center bg-white rounded shadow text-mk-red ${minusDis}"><i class="fas fa-minus text-xs"></i></button><span class="text-sm font-bold w-4 text-center">${i.quantity}</span><button onclick="updateCartItemQty('${i.id}',1)" class="w-6 h-6 flex items-center justify-center bg-mk-red text-white rounded shadow"><i class="fas fa-plus text-xs"></i></button></div><div class="font-bold text-sm mt-1">${(i.price*i.quantity).toLocaleString()} ฿</div></div><button onclick="removeFromCart('${i.id}')" class="text-gray-400 self-center ml-2"><i class="fas fa-trash"></i></button></div>`;
+            });
+        }
 
-                const minusDisabled = item.quantity <= 1 ? 'opacity-50 cursor-not-allowed' : 'active:scale-90';
-                
+        function updateCartUI() {
+            const items = Object.values(cart);
+            const totalQty = items.reduce((s,i)=>s+i.quantity,0);
+            const totalP = items.reduce((s,i)=>s+(i.price*i.quantity),0);
+            const badge = document.getElementById('header-cart-badge');
+            if(totalQty>0) { badge.innerText=totalQty; badge.classList.remove('hidden'); badge.classList.add('badge-pop'); setTimeout(()=>badge.classList.remove('badge-pop'),300); }
+            else { badge.classList.add('hidden'); }
+            document.getElementById('cart-total-modal').innerText = totalP.toLocaleString() + ' ฿';
+            if(totalP>0) document.getElementById('qr-image').src = `https://promptpay.io/${promptpayId}/${totalP}.png`;
+            renderCartItems();
+        }
+
+        function openCheckoutModal() { 
+            if(storeStatus==='CLOSE'){alert('ร้านปิด');return;} 
+            document.getElementById('checkout-modal').classList.remove('hidden'); 
+            if(userProfileData.name) document.getElementById('checkout-name').value = userProfileData.name;
+            if(userProfileData.tel) document.getElementById('checkout-tel').value = userProfileData.tel;
+            if(userProfileData.address) document.getElementById('checkout-address').value = userProfileData.address;
+            updateCartUI(); 
+        }
+        function closeCheckoutModal() { document.getElementById('checkout-modal').classList.add('hidden'); }
+        function updateCartItemQty(id,d) { if(cart[id]){ const n=cart[id].quantity+d; if(n<1)return; cart[id].quantity=n; updateCartUI(); } }
+        function removeFromCart(id) { delete cart[id]; updateCartUI(); }
+
+        document.getElementById('orderForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn'); btn.innerHTML='กำลังส่ง...'; btn.disabled=true;
+            const name=document.getElementById('checkout-name').value;
+            const tel=document.getElementById('checkout-tel').value;
+            const addr=document.getElementById('checkout-address').value;
+            
+            // Save Profile (LocalStorage)
+            const p={name:name,tel:tel,address:addr};
+            localStorage.setItem('mk_profile',JSON.stringify(p));
+            userProfileData=p;
+            
+            // Update Profile Page Immediately
+            if(document.getElementById('prof-name')) document.getElementById('prof-name').value = name;
+            if(document.getElementById('prof-tel')) document.getElementById('prof-tel').value = tel;
+            if(document.getElementById('prof-address')) document.getElementById('prof-address').value = addr;
+
+            const f = document.getElementById('slip');
+            let b64 = "";
+            if(f.files.length) b64 = await new Promise(r=>{const d=new FileReader();d.onload=()=>r(d.result);d.readAsDataURL(f.files[0]);});
+
+            const payload = { lineUid: userLineUid, name: name, telephone: tel, address: addr, image: b64, orderDetails: Object.values(cart), totalPrice: Object.values(cart).reduce((s,i)=>s+(i.price*i.quantity),0) };
+            fetch(GAS_URL, { method: 'POST', mode: 'no-cors', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(payload)})
+            .then(()=>{ alert("สั่งซื้อสำเร็จ!"); liff.closeWindow(); })
+            .catch(()=>{ alert("Error"); btn.disabled=false; btn.innerHTML="ยืนยันสั่งซื้อ"; });
+        });
+
+        // --- HELPERS (Explicitly Written) ---
+        function initBannerAutoSlide() { const s=document.getElementById('banner-slider'); if(!s)return; setTimeout(()=>{const w=s.firstElementChild?s.firstElementChild.offsetWidth+12:300; setInterval(()=>{if(Math.ceil(s.scrollLeft+s.clientWidth)>=s.scrollWidth)s.scrollTo({left:0,behavior:'smooth'});else s.scrollBy({left:w,behavior:'smooth'});},3000);},1000); }
+        function openBranchModal(){document.getElementById('branch-modal').classList.remove('hidden');if(branchList.length===0){fetch(`${GAS_URL}?action=get_branches`).then(r=>r.json()).then(d=>{branchList=d;renderBranches(branchList);});}else renderBranches(branchList);}
+        function closeBranchModal(){document.getElementById('branch-modal').classList.add('hidden');}
+        function findNearestBranches(){if(!navigator.geolocation){alert("No GPS");return;} navigator.geolocation.getCurrentPosition(p=>{const lat=p.coords.latitude,lng=p.coords.longitude; branchList.forEach(b=>{b.d=getDist(lat,lng,b.lat,b.lng);b.txt=b.d.toFixed(2)+" km";}); branchList.sort((a,b)=>(a.status!=='OPEN'?1:0)-(b.status!=='OPEN'?1:0) || a.d-b.d); renderBranches(branchList);});}
+        function renderBranches(l){const c=document.getElementById('branch-list');c.innerHTML="";l.forEach((b,i)=>{ const isCl=b.status==='CLOSE'; const stC=isCl?'text-red-500':'text-green-500'; const dist=b.txt?`<span class="text-mk-red text-xs ml-2">(${b.txt})</span>`:''; c.innerHTML+=`<div onclick="${isCl?'':'selectBranch(\''+b.name+'\')'}" class="bg-gray-50 p-3 rounded-lg border mb-2 ${isCl?'opacity-50':'cursor-pointer hover:bg-red-50'}"><div class="flex justify-between"><div><h4 class="font-bold text-sm">${b.name} ${dist}</h4><p class="text-xs ${stC}">${b.status}</p></div><a href="tel:${b.tel}" class="bg-white border p-1 rounded"><i class="fas fa-phone"></i></a></div></div>`; });}
+        function filterBranches() { const k=document.getElementById('branch-search').value.toLowerCase(); renderBranches(branchList.filter(b=>b.name.toLowerCase().includes(k))); }
+        function selectBranch(n){const b=branchList.find(x=>x.name===n); selectedBranch=b; document.getElementById('selected-branch-name-mini').innerText=b.name.substring(0,8)+".."; closeBranchModal();}
+        function getDist(lat1,lon1,lat2,lon2){var R=6371,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180,a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+        function deg2rad(d) { return d*(Math.PI/180); }
+        function setupProfileUI(p){document.getElementById('user-profile-icon').innerHTML=`<img src="${p.pictureUrl}" class="w-full h-full rounded-full">`;document.getElementById('profile-img-large').innerHTML=`<img src="${p.pictureUrl}" class="w-full h-full rounded-full">`;document.getElementById('profile-name').innerText=p.displayName;document.getElementById('header-name').innerText=p.displayName;}
+        function switchPage(p){document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));document.getElementById(`page-${p}`).classList.add('active');document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active-tab'));document.getElementById(`tab-${p}`).classList.add('active-tab'); if(p==='home')updateCartUI(); if(p==='history')fetchHistory();}
+        function goBack(){document.querySelectorAll('.full-screen').forEach(e=>{e.classList.remove('active');e.classList.add('hidden');});if(document.getElementById('page-home').classList.contains('active'))updateCartUI();}
+        function applyStoreStatus(){const b=document.getElementById('store-status-badge');if(storeStatus==='CLOSE'){b.innerText='CLOSED';b.className='bg-red-500 text-[10px] px-2 rounded text-white';document.getElementById('closed-alert').classList.remove('hidden');}else{b.innerText='OPEN';b.className='bg-green-500 text-[10px] px-2 rounded text-white';document.getElementById('closed-alert').classList.add('hidden');}}
+        function setupCategories(p){const c=document.getElementById('category-container'); const cats=[...new Set(p.map(x=>x.category))]; c.innerHTML=`<button onclick="filterCat('all',this)" class="category-btn active whitespace-nowrap px-4 py-1 rounded-full border border-gray-300 text-sm text-gray-600 transition mx-1">ทั้งหมด</button><button onclick="filterFavorites(this)" class="category-btn whitespace-nowrap px-4 py-1 rounded-full border border-gray-300 text-sm text-gray-600 transition mx-1">❤️ ที่ชอบ</button>`; cats.forEach(ct=>{if(!ct)return;const b=document.createElement('button');b.className='category-btn whitespace-nowrap px-4 py-1 rounded-full border border-gray-300 text-sm text-gray-600 transition mx-1';b.innerText=ct;b.onclick=()=>filterCat(ct,b);c.appendChild(b);});}
+        function filterCat(c,b){document.querySelectorAll('.category-btn').forEach(x=>x.classList.remove('active','border-mk-red','text-white'));b.classList.add('active');if(c==='all')renderProducts(allProducts);else renderProducts(allProducts.filter(p=>p.category===c));}
+        function filterFavorites(b) { document.querySelectorAll('.category-btn').forEach(x=>x.classList.remove('active','border-mk-red','text-white')); b.classList.add('active'); renderProducts(allProducts.filter(p=>favorites.includes(p.id))); }
+        function loadProfileLocal(){const d=localStorage.getItem('mk_profile');if(d){const p=JSON.parse(d);document.getElementById('prof-name').value=p.name;document.getElementById('prof-tel').value=p.tel;document.getElementById('prof-address').value=p.address;userProfileData=p;}}
+        function saveProfile(){const p={name:document.getElementById('prof-name').value,tel:document.getElementById('prof-tel').value,address:document.getElementById('prof-address').value};localStorage.setItem('mk_profile',JSON.stringify(p));userProfileData=p;alert('บันทึกแล้ว');}
+        function openMapModal(){document.getElementById('map-modal').classList.remove('hidden');if(!map){map=L.map('map').setView([13.7563,100.5018],15);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);navigator.geolocation.getCurrentPosition(p=>map.setView([p.coords.latitude,p.coords.longitude],15));}}
+        function closeMapModal(){document.getElementById('map-modal').classList.add('hidden');}
+        function panToCurrentLocation(){navigator.geolocation.getCurrentPosition(p=>map.setView([p.coords.latitude,p.coords.longitude],15));}
+        function confirmLocation(){const c=map.getCenter();document.getElementById('checkout-address').value+=` (${c.lat.toFixed(5)},${c.lng.toFixed(5)})`;closeMapModal();}
+        
+        function renderProducts(products) {
+            const container = document.getElementById('product-list');
+            container.innerHTML = "";
+            products.forEach(p => {
+                const isFav = favorites.includes(p.id);
+                const favColor = isFav ? 'text-mk-red' : 'text-gray-300';
+                const kcalTag = p.kcal ? `<span class="bg-orange-100 text-orange-600 text-[10px] px-1 rounded font-bold">${p.kcal} Kcal</span>` : '';
                 container.innerHTML += `
-                    <div class="flex justify-between border-b pb-3 mb-3 last:border-0 last:mb-0 last:pb-0">
-                        <div class="flex space-x-3 w-2/3">
-                            <img src="${item.image}" class="w-12 h-12 rounded object-cover bg-gray-100 flex-shrink-0">
-                            <div>
-                                <p class="font-bold text-sm text-gray-800 line-clamp-1">${item.name}</p>
-                                ${optionsHtml}
-                                ${noteHtml}
-                                <p class="text-xs text-gray-400 mt-1">${item.price} ฿</p>
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden flex flex-col border border-transparent hover:border-red-100 transition relative group">
+                        <button onclick="toggleFavorite(event, '${p.id}')" class="absolute top-2 right-2 z-[5] bg-white/90 backdrop-blur-sm rounded-full p-1.5 shadow-sm ${favColor} hover:scale-110 transition">
+                            <i class="fas fa-heart text-sm"></i>
+                        </button>
+                        <div onclick="openProductDetail('${p.id}')" class="cursor-pointer flex-grow flex flex-col">
+                            <div class="h-32 w-full relative bg-gray-100">
+                                <img src="${p.image}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" loading="lazy">
+                            </div>
+                            <div class="p-3 flex flex-col flex-grow">
+                                <h3 class="font-bold text-gray-800 text-sm line-clamp-1">${p.name}</h3>
+                                <div class="flex justify-between items-center mb-1">
+                                    <p class="text-xs text-gray-500">${p.category||''}</p>
+                                    ${kcalTag}
+                                </div>
+                                <div class="mt-auto flex justify-between items-center">
+                                    <span class="font-bold text-mk-red">${p.price}.-</span>
+                                    <div class="bg-red-50 text-mk-red w-7 h-7 rounded-full flex items-center justify-center border border-red-100">
+                                        <i class="fas fa-plus text-xs"></i>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="flex flex-col items-end">
-                            <div class="flex items-center space-x-2 bg-gray-50 rounded-lg p-1 border border-gray-100">
-                                <button onclick="updateCartItemQty('${item.id}', -1)" class="w-6 h-6 flex items-center justify-center bg-white rounded shadow text-mk-red ${minusDisabled}"><i class="fas fa-minus text-xs"></i></button>
-                                <span class="text-sm font-bold w-4 text-center">${item.quantity}</span>
-                                <button onclick="updateCartItemQty('${item.id}', 1)" class="w-6 h-6 flex items-center justify-center bg-mk-red text-white rounded shadow active:scale-90"><i class="fas fa-plus text-xs"></i></button>
-                            </div>
-                            <div class="font-bold text-sm mt-1">${(item.price * item.quantity).toLocaleString()} ฿</div>
-                        </div>
-                        <button onclick="removeFromCart('${item.id}')" class="text-gray-400 self-center ml-2"><i class="fas fa-trash"></i></button>
                     </div>`;
             });
         }
 
-        // --- CHECKOUT & QR CODE ---
-        function updateCartUI() {
-            const items = Object.values(cart);
-            const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
-            const totalPrice = items.reduce((sum, i) => sum + (i.price * i.quantity), 0);
-            
-            const badge = document.getElementById('header-cart-badge');
-            if (totalQty > 0) { badge.innerText = totalQty; badge.classList.remove('hidden'); badge.classList.add('badge-pop'); setTimeout(() => badge.classList.remove('badge-pop'), 300); } 
-            else { badge.classList.add('hidden'); }
-
-            document.getElementById('cart-total-modal').innerText = totalPrice.toLocaleString() + ' ฿';
-            
-            // UPDATE QR CODE
-            if(totalPrice > 0) {
-                // PromptPay.io API format: https://promptpay.io/{id}/{amount}.png
-                const qrUrl = `https://promptpay.io/${promptpayId}/${totalPrice}.png`;
-                document.getElementById('qr-image').src = qrUrl;
-            }
-
-            renderCartItems();
+        function toggleFavorite(e, id) {
+            e.stopPropagation();
+            if (favorites.includes(id)) { favorites = favorites.filter(favId => favId !== id); } else { favorites.push(id); }
+            localStorage.setItem('mk_favorites', JSON.stringify(favorites));
+            const btn = e.currentTarget; btn.classList.toggle('text-mk-red'); btn.classList.toggle('text-gray-300');
         }
 
-        // --- OTHER FUNCTIONS (Keep same as before) ---
-        function initBannerAutoSlide() { const s=document.getElementById('banner-slider'); if(!s)return; setTimeout(()=>{ const w=s.firstElementChild?s.firstElementChild.offsetWidth+12:300; setInterval(()=>{ if(Math.ceil(s.scrollLeft+s.clientWidth)>=s.scrollWidth){s.scrollTo({left:0,behavior:'smooth'});}else{s.scrollBy({left:w,behavior:'smooth'});} },3000); },1000); }
-        function openBranchModal() { document.getElementById('branch-modal').classList.remove('hidden'); if(branchList.length===0){fetch(`${GAS_URL}?action=get_branches`).then(r=>r.json()).then(d=>{branchList=d;renderBranches(branchList);}).catch(()=>{document.getElementById('branch-list').innerHTML=`<p class='text-center text-red-400 mt-10'>Error</p>`;});}else{renderBranches(branchList);} }
-        function closeBranchModal() { document.getElementById('branch-modal').classList.add('hidden'); }
-        function findNearestBranches() { const l=document.getElementById('branch-list'); l.innerHTML='<p class="text-center text-gray-400 mt-10"><i class="fas fa-circle-notch fa-spin"></i> ...</p>'; if(!navigator.geolocation){alert("No GPS");return;} navigator.geolocation.getCurrentPosition(p=>{ const lat=p.coords.latitude; const lng=p.coords.longitude; branchList.forEach(b=>{ b.distanceVal=getDistanceFromLatLonInKm(lat,lng,b.lat,b.lng); b.distanceDisplay=b.distanceVal.toFixed(2)+" กม."; }); branchList.sort((a,b)=>{ if(a.status!==b.status) return a.status==='OPEN'?-1:1; return (a.distanceVal||0)-(b.distanceVal||0); }); renderBranches(branchList); }, ()=>{ l.innerHTML='<p class="text-center text-red-400 mt-10">GPS Error</p>'; }); }
-        function renderBranches(l) { const c=document.getElementById('branch-list'); c.innerHTML=""; if(l.length===0){c.innerHTML=`<p class="text-center text-gray-400 mt-4">Empty</p>`;return;} l.forEach((b,i)=>{ const isCl=b.status==='CLOSE'; const stC=isCl?'text-red-500':'text-green-500'; const isSel=selectedBranch&&selectedBranch.name===b.name?'branch-selected':''; const rCl=isCl?'branch-closed':'hover:bg-red-50 cursor-pointer'; const clk=isCl?'':`onclick="selectBranch('${b.name}',${i})"`; const clB=isCl?'<span class="bg-red-500 text-white text-[10px] px-1 rounded ml-1">ปิด</span>':''; const dist=b.distanceDisplay?`<p class="text-xs text-mk-red font-bold"><i class="fas fa-location-arrow"></i> ${b.distanceDisplay}</p>`:`<p class="text-[10px] text-gray-400">N/A</p>`; c.innerHTML+=`<div ${clk} class="bg-gray-50 p-3 rounded-lg border transition ${isSel} ${rCl}"><div class="flex justify-between items-start"><div><h4 class="font-bold text-gray-800 text-sm flex items-center">${b.name} ${clB}</h4><div class="mt-1">${dist}</div></div><div class="text-right"><p class="text-[10px] ${stC} font-bold border border-current px-1 rounded mb-1">${b.status}</p><a href="tel:${b.tel}" class="bg-white border border-gray-200 px-2 py-1 rounded-full text-xs text-gray-500 shadow-sm inline-block"><i class="fas fa-phone"></i> โทร</a></div></div></div>`; }); }
-        function filterBranches() { const k=document.getElementById('branch-search').value.toLowerCase(); renderBranches(branchList.filter(b=>b.name.toLowerCase().includes(k))); }
-        function selectBranch(n,i) { const t=branchList.find(b=>b.name===n); if(t&&t.status==='OPEN'){ selectedBranch=t; document.getElementById('selected-branch-name-mini').innerText=t.name.substring(0,8)+".."; renderBranches(branchList); setTimeout(()=>closeBranchModal(),300); } }
-        function getDistanceFromLatLonInKm(lat1,lon1,lat2,lon2) { var R=6371; var dLat=deg2rad(lat2-lat1); var dLon=deg2rad(lon2-lon1); var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(deg2rad(lat1))*Math.cos(deg2rad(lat2))*Math.sin(dLon/2)*Math.sin(dLon/2); var c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); return R*c; }
-        function deg2rad(d) { return d*(Math.PI/180); }
-        function setupProfileUI(p) { document.getElementById('user-profile-icon').innerHTML=`<img src="${p.pictureUrl}" class="w-full h-full object-cover rounded-full">`; document.getElementById('profile-img-large').innerHTML=`<img src="${p.pictureUrl}" class="w-full h-full object-cover">`; document.getElementById('profile-name').innerText=p.displayName; document.getElementById('header-name').innerText=p.displayName; }
-        function switchPage(pid) { document.querySelectorAll('.page').forEach(e=>{if(!e.classList.contains('full-screen'))e.classList.remove('active');}); document.querySelectorAll('.full-screen').forEach(e=>{e.classList.remove('active');e.classList.add('hidden');}); document.querySelectorAll('.nav-item').forEach(e=>{e.classList.remove('active-tab');e.classList.add('inactive-tab');}); document.getElementById(`tab-${pid}`).classList.add('active-tab'); document.getElementById(`tab-${pid}`).classList.remove('inactive-tab'); document.getElementById(`page-${pid}`).classList.add('active'); if(pid==='home')updateCartUI(); if(pid==='history')fetchHistory(); }
-        function goBack() { document.querySelectorAll('.full-screen').forEach(e=>{e.classList.remove('active');e.classList.add('hidden');}); if(document.getElementById('page-home').classList.contains('active'))updateCartUI(); }
-        function applyStoreStatus() { const b=document.getElementById('store-status-badge'); const o=document.getElementById('closed-alert'); if(storeStatus==='CLOSE'){ b.className="bg-red-500 text-[10px] px-2 py-0.5 rounded-full font-bold"; b.innerText="CLOSED"; b.classList.remove('hidden'); o.classList.remove('hidden'); document.getElementById('product-list').classList.add('store-closed-overlay'); } else { b.className="bg-green-500 text-[10px] px-2 py-0.5 rounded-full font-bold"; b.innerText="OPEN"; b.classList.remove('hidden'); o.classList.add('hidden'); document.getElementById('product-list').classList.remove('store-closed-overlay'); } }
-        function renderProducts(products) { const c=document.getElementById('product-list'); c.innerHTML=""; products.forEach(p=>{ const isF=favorites.includes(p.id); const fc=isF?'text-mk-red':'text-gray-300'; const kt=p.kcal?`<span class="bg-orange-100 text-orange-600 text-[10px] px-1 rounded font-bold">${p.kcal} Kcal</span>`:''; c.innerHTML+=`<div class="bg-white rounded-xl shadow-sm overflow-hidden flex flex-col border border-transparent hover:border-red-100 transition relative group"><button onclick="toggleFavorite(event,'${p.id}')" class="absolute top-2 right-2 z-[5] bg-white/90 backdrop-blur-sm rounded-full p-1.5 shadow-sm ${fc} hover:scale-110 transition"><i class="fas fa-heart text-sm"></i></button><div onclick="openProductDetail('${p.id}')" class="cursor-pointer flex-grow flex flex-col"><div class="h-32 w-full relative bg-gray-100"><img src="${p.image}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" loading="lazy"></div><div class="p-3 flex flex-col flex-grow"><h3 class="font-bold text-gray-800 text-sm line-clamp-1">${p.name}</h3><div class="flex justify-between items-center mb-1"><p class="text-xs text-gray-500">${p.category||''}</p>${kt}</div><div class="mt-auto flex justify-between items-center"><span class="font-bold text-mk-red">${p.price}.-</span><div class="bg-red-50 text-mk-red w-7 h-7 rounded-full flex items-center justify-center border border-red-100"><i class="fas fa-plus text-xs"></i></div></div></div></div></div>`; }); }
-        function toggleFavorite(e,id) { e.stopPropagation(); if(favorites.includes(id)){favorites=favorites.filter(f=>f!==id);}else{favorites.push(id);} localStorage.setItem('mk_favorites',JSON.stringify(favorites)); e.currentTarget.classList.toggle('text-mk-red'); e.currentTarget.classList.toggle('text-gray-300'); }
-        function updateCartItemQty(id,d) { if(cart[id]){ const n=cart[id].quantity+d; if(n<1)return; cart[id].quantity=n; updateCartUI(); } }
-        function removeFromCart(id) { delete cart[id]; updateCartUI(); }
-        function closeCheckoutModal() { document.getElementById('checkout-modal').classList.add('hidden'); }
-        function openMapModal() { document.getElementById('map-modal').classList.remove('hidden'); if(!map){map=L.map('map').setView([13.7563,100.5018],15);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);panToCurrentLocation();}else setTimeout(()=>map.invalidateSize(),100); }
-        function closeMapModal() { document.getElementById('map-modal').classList.add('hidden'); }
-        function panToCurrentLocation() { navigator.geolocation.getCurrentPosition(p=>map.setView([p.coords.latitude,p.coords.longitude],17)); }
-        function confirmLocation() { const c=map.getCenter(); document.getElementById('checkout-address').value+=` (พิกัด: ${c.lat.toFixed(5)},${c.lng.toFixed(5)})`; closeMapModal(); }
-        function setupCategories(p) { const cats=[...new Set(p.map(x=>x.category))]; const c=document.getElementById('category-container'); c.innerHTML='<button onclick="filterCategory(\'all\',this)" class="category-btn active whitespace-nowrap px-4 py-1 rounded-full border border-gray-300 text-sm text-gray-600 transition mx-1">ทั้งหมด</button><button onclick="filterFavorites(this)" class="category-btn whitespace-nowrap px-4 py-1 rounded-full border border-gray-300 text-sm text-gray-600 transition mx-1">❤️ ที่ชอบ</button>'; cats.forEach(ct=>{if(!ct)return; const b=document.createElement('button'); b.className='category-btn whitespace-nowrap px-4 py-1 rounded-full border border-gray-300 text-sm text-gray-600 transition mx-1'; b.innerText=ct; b.onclick=()=>filterCategory(ct,b); c.appendChild(b);}); }
-        function filterCategory(c,b) { document.querySelectorAll('.category-btn').forEach(x=>x.classList.remove('active','border-mk-red','text-white')); b.classList.add('active'); if(c==='all')renderProducts(allProducts); else renderProducts(allProducts.filter(p=>p.category===c)); }
-        function filterFavorites(b) { document.querySelectorAll('.category-btn').forEach(x=>x.classList.remove('active','border-mk-red','text-white')); b.classList.add('active'); renderProducts(allProducts.filter(p=>favorites.includes(p.id))); }
-        function loadProfileLocal() { const d=localStorage.getItem('mk_profile'); if(d){const p=JSON.parse(d); document.getElementById('prof-name').value=p.name; document.getElementById('prof-tel').value=p.tel; document.getElementById('prof-address').value=p.address; userProfileData=p;} }
-        function saveProfile() { const p={name:document.getElementById('prof-name').value,tel:document.getElementById('prof-tel').value,address:document.getElementById('prof-address').value}; localStorage.setItem('mk_profile',JSON.stringify(p)); userProfileData=p; alert('บันทึกแล้ว'); }
-        function searchProduct(k) { if(!k)renderProducts(allProducts); else renderProducts(allProducts.filter(p=>p.name.toLowerCase().includes(k.toLowerCase()))); }
-        function fetchHistory() { const list = document.getElementById('history-list'); list.innerHTML = '<p class="text-center text-gray-400 mt-10">กำลังโหลด...</p>'; fetch(`${GAS_URL}?action=get_history&uid=${userLineUid}`).then(res => res.json()).then(data => { list.innerHTML = ""; let grandTotalSpent = 0; if(data.length===0) { list.innerHTML = `<div class="text-center mt-10 text-gray-400">ยังไม่มีประวัติ</div>`; return; } data.forEach(order => { let items = []; try { items = JSON.parse(order.items); if(!Array.isArray(items)) items=[items]; } catch(e){ items=[]; } const total = items.reduce((sum,i)=>sum+(Number(i.price||0)*Number(i.quantity||1)),0); if(order.status.includes('เสร็จ') || order.status.includes('ส่ง')) { grandTotalSpent += total; } const safeData = encodeURIComponent(JSON.stringify({...order, items, total})); let stColor = "bg-gray-100 text-gray-600"; if(order.status.includes('รอ')) stColor="bg-yellow-100 text-yellow-700"; if(order.status.includes('ส่ง')||order.status.includes('เสร็จ')) stColor="bg-green-100 text-green-600"; if(order.status.includes('ยกเลิก')) stColor="bg-red-100 text-red-600"; list.innerHTML += `<div onclick="openHistoryDetail('${safeData}')" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 cursor-pointer mb-3"><div class="flex justify-between mb-2"><div><p class="text-xs text-gray-400">#${order.orderId.substring(0,8)}</p><p class="text-sm font-bold">${order.date}</p></div><span class="px-2 py-1 rounded text-xs font-bold h-fit ${stColor}">${order.status}</span></div><p class="text-xs text-gray-500">${items.length} รายการ - <b>${total.toLocaleString()} ฿</b></p></div>`; }); const points = Math.floor(grandTotalSpent / 100); document.getElementById('user-points').innerText = points; if(points > 100) document.getElementById('user-tier-badge').innerText = "Gold Member"; if(points > 500) document.getElementById('user-tier-badge').innerText = "Platinum Member"; }); }
-        function openHistoryDetail(encoded) { const data = JSON.parse(decodeURIComponent(encoded)); currentHistoryItem = data; document.getElementById('hist-detail-id').innerText = '#' + data.orderId.substring(0,8).toUpperCase(); document.getElementById('hist-detail-date').innerText = data.date; document.getElementById('hist-detail-status-box').innerText = data.status; document.getElementById('hist-detail-total').innerText = data.total.toLocaleString() + ' ฿'; const cont = document.getElementById('hist-detail-items'); cont.innerHTML = ""; data.items.forEach(i => { cont.innerHTML += `<div class="flex justify-between text-sm border-b pb-2 last:border-0"><span class="text-gray-700 w-2/3">${i.name} <span class="text-xs text-gray-400">x${i.quantity}</span></span><span class="font-medium">${(Number(i.price)*Number(i.quantity)).toLocaleString()}</span></div>`; }); const page = document.getElementById('page-history-detail'); page.classList.remove('hidden'); page.classList.add('active'); }
-        function reorderCurrentHistory() { if(!currentHistoryItem) return; cart = {}; currentHistoryItem.items.forEach(item => { const productRef = allProducts.find(p => p.name === item.name); if(productRef) { const cartId = productRef.id + "_reorder"; cart[cartId] = { ...productRef, id: cartId, quantity: item.quantity, note: item.note || "", price: item.price }; } }); updateCartUI(); goBack(); openCheckoutModal(); }
-        // Keep AI logic the same, just hidden here for brevity but it's in the full copy block above.
+        function searchProduct(k) { if(!k) renderProducts(allProducts); else renderProducts(allProducts.filter(p=>p.name.toLowerCase().includes(k.toLowerCase()))); }
+
+        function fetchHistory() {
+            const list = document.getElementById('history-list');
+            list.innerHTML = '<p class="text-center text-gray-400 mt-10">กำลังโหลด...</p>';
+            fetch(`${GAS_URL}?action=get_history&uid=${userLineUid}`)
+                .then(res => res.json())
+                .then(data => {
+                    list.innerHTML = "";
+                    let grandTotalSpent = 0;
+                    if(data.length===0) { list.innerHTML = `<div class="text-center mt-10 text-gray-400">ยังไม่มีประวัติ</div>`; return; }
+                    data.forEach(order => {
+                        let items = []; 
+                        try { items = JSON.parse(order.items); if(!Array.isArray(items)) items=[items]; } catch(e){ items=[]; }
+                        const total = items.reduce((sum,i)=>sum+(Number(i.price||0)*Number(i.quantity||1)),0);
+                        if(order.status.includes('เสร็จ') || order.status.includes('ส่ง')) { grandTotalSpent += total; }
+                        const safeData = encodeURIComponent(JSON.stringify({...order, items, total}));
+                        let stColor = "bg-gray-100 text-gray-600";
+                        if(order.status.includes('รอ')) stColor="bg-yellow-100 text-yellow-700";
+                        if(order.status.includes('ส่ง')||order.status.includes('เสร็จ')) stColor="bg-green-100 text-green-600";
+                        if(order.status.includes('ยกเลิก')) stColor="bg-red-100 text-red-600";
+                        list.innerHTML += `<div onclick="openHistoryDetail('${safeData}')" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 cursor-pointer mb-3"><div class="flex justify-between mb-2"><div><p class="text-xs text-gray-400">#${order.orderId.substring(0,8)}</p><p class="text-sm font-bold">${order.date}</p></div><span class="px-2 py-1 rounded text-xs font-bold h-fit ${stColor}">${order.status}</span></div><p class="text-xs text-gray-500">${items.length} รายการ - <b>${total.toLocaleString()} ฿</b></p></div>`;
+                    });
+                    const points = Math.floor(grandTotalSpent / 100);
+                    document.getElementById('user-points').innerText = points;
+                    if(points > 100) document.getElementById('user-tier-badge').innerText = "Gold Member";
+                    if(points > 500) document.getElementById('user-tier-badge').innerText = "Platinum Member";
+                });
+        }
+
+        function openHistoryDetail(encoded) {
+            const data = JSON.parse(decodeURIComponent(encoded));
+            currentHistoryItem = data;
+            document.getElementById('hist-detail-id').innerText = '#' + data.orderId.substring(0,8).toUpperCase();
+            document.getElementById('hist-detail-date').innerText = data.date;
+            document.getElementById('hist-detail-status-box').innerText = data.status;
+            document.getElementById('hist-detail-total').innerText = data.total.toLocaleString() + ' ฿';
+            const cont = document.getElementById('hist-detail-items');
+            cont.innerHTML = "";
+            data.items.forEach(i => {
+                cont.innerHTML += `<div class="flex justify-between text-sm border-b pb-2 last:border-0"><span class="text-gray-700 w-2/3">${i.name} <span class="text-xs text-gray-400">x${i.quantity}</span></span><span class="font-medium">${(Number(i.price)*Number(i.quantity)).toLocaleString()}</span></div>`;
+            });
+            const page = document.getElementById('page-history-detail');
+            page.classList.remove('hidden'); page.classList.add('active');
+        }
+
+        function reorderCurrentHistory() {
+            if(!currentHistoryItem) return;
+            cart = {};
+            currentHistoryItem.items.forEach(item => {
+                const productRef = allProducts.find(p => p.name === item.name);
+                if(productRef) {
+                    cart[productRef.id] = { ...productRef, quantity: item.quantity, note: item.note || "" };
+                }
+            });
+            updateCartUI();
+            goBack();
+            openCheckoutModal();
+        }
+
         function generateAiSet() { const limit = parseInt(document.getElementById('ai-value').value); const listContainer = document.getElementById('ai-items-list'); const mains = allProducts.filter(p => !p.category.includes('น้ำ') && !p.category.includes('เครื่องดื่ม') && !p.category.includes('หวาน')); const drinks = allProducts.filter(p => p.category.includes('น้ำ') || p.category.includes('เครื่องดื่ม')); const desserts = allProducts.filter(p => p.category.includes('หวาน') || p.category.includes('ทานเล่น')); let bestSet = []; let attempts = 0; let found = false; while (attempts < 50 && !found) { let set = []; let currentTotal = 0; let currentKcal = 0; const rMain = mains[Math.floor(Math.random() * mains.length)]; if(rMain) { set.push(rMain); currentTotal += rMain.price; currentKcal += (rMain.kcal || 0); } if (drinks.length > 0 && Math.random() > 0.3) { const rDrink = drinks[Math.floor(Math.random() * drinks.length)]; set.push(rDrink); currentTotal += rDrink.price; currentKcal += (rDrink.kcal || 0); } if (desserts.length > 0 && Math.random() > 0.5) { const rDessert = desserts[Math.floor(Math.random() * desserts.length)]; set.push(rDessert); currentTotal += rDessert.price; currentKcal += (rDessert.kcal || 0); } if (aiMode === 'budget') { if (currentTotal <= limit && currentTotal > (limit * 0.5)) { bestSet = set; found = true; } } else { if (currentKcal <= limit && currentKcal > (limit * 0.6)) { bestSet = set; found = true; } } attempts++; } if (bestSet.length === 0) { alert("ไม่พบเซตที่ตรงเงื่อนไข"); return; } currentAiSet = bestSet; listContainer.innerHTML = ""; let tp = 0; let tk = 0; bestSet.forEach(p => { tp += p.price; tk += (p.kcal || 0); listContainer.innerHTML += `<div class="flex items-center p-3"><img src="${p.image}" class="w-12 h-12 rounded-lg object-cover bg-gray-100"><div class="ml-3 flex-grow"><p class="font-bold text-sm text-gray-800">${p.name}</p><p class="text-xs text-gray-500">${p.category} | ${p.kcal||0} Kcal</p></div><p class="font-bold text-mk-red">${p.price} ฿</p></div>`; }); document.getElementById('ai-total-price').innerText = tp + " ฿"; document.getElementById('ai-total-kcal').innerText = tk + " Kcal"; document.getElementById('ai-result').classList.remove('hidden'); if(bestSet.length > 0) generateSimilarItems(bestSet[0]); }
         function generateSimilarItems(mainDish) { const container = document.getElementById('ai-similar'); const list = document.getElementById('ai-similar-list'); if(!mainDish) return; const similars = allProducts.filter(p => p.category === mainDish.category && p.id !== mainDish.id && Math.abs(p.price - mainDish.price) < 50).sort(() => 0.5 - Math.random()).slice(0, 2); if (similars.length === 0) { container.classList.add('hidden'); return; } list.innerHTML = ""; similars.forEach(p => { list.innerHTML += `<div onclick="replaceMainDish('${p.id}')" class="bg-white p-2 rounded border flex justify-between items-center cursor-pointer hover:bg-gray-50"><div class="flex items-center"><img src="${p.image}" class="w-8 h-8 rounded object-cover"><div class="ml-2"><span class="text-xs font-bold text-gray-700 block">${p.name}</span><span class="text-[10px] text-gray-500">${p.price} ฿</span></div></div><span class="text-xs text-mk-red font-bold">เลือก <i class="fas fa-check-circle"></i></span></div>`; }); container.classList.remove('hidden'); }
         function addAiSetToCart() { currentAiSet.forEach(p => { if (cart[p.id]) cart[p.id].quantity++; else cart[p.id] = { ...p, quantity: 1 }; }); updateCartUI(); alert(`เพิ่ม ${currentAiSet.length} รายการแล้ว!`); switchPage('home'); }
@@ -512,18 +558,6 @@
         function setAiMode(mode) { aiMode = mode; const bB = document.getElementById('btn-mode-budget'); const bK = document.getElementById('btn-mode-kcal'); const lb = document.getElementById('ai-label'); const sl = document.getElementById('ai-slider'); const inp = document.getElementById('ai-value'); if (mode === 'budget') { bB.className = "flex-1 py-2 rounded-md text-sm font-bold bg-white shadow text-mk-red transition"; bK.className = "flex-1 py-2 rounded-md text-sm font-bold text-gray-500 transition"; lb.innerText = "งบประมาณไม่เกิน (บาท)"; sl.min = 50; sl.max = 1000; sl.value = 200; inp.value = 200; } else { bK.className = "flex-1 py-2 rounded-md text-sm font-bold bg-white shadow text-mk-red transition"; bB.className = "flex-1 py-2 rounded-md text-sm font-bold text-gray-500 transition"; lb.innerText = "พลังงานไม่เกิน (Kcal)"; sl.min = 200; sl.max = 1500; sl.value = 500; inp.value = 500; } }
         function adjustAiValue(d) { const i = document.getElementById('ai-value'); const s = document.getElementById('ai-slider'); let v = parseInt(i.value) + d; i.value = v; s.value = v; }
         function syncAiValue(v) { document.getElementById('ai-value').value = v; }
-        
-        // Define openCheckoutModal in global scope so it's accessible
-        function openCheckoutModal() { 
-            if(storeStatus === 'CLOSE') { alert('ร้านปิดอยู่ครับ'); return; } 
-            document.getElementById('checkout-modal').classList.remove('hidden'); 
-            if(userProfileData.name) document.getElementById('checkout-name').value = userProfileData.name; 
-            if(userProfileData.tel) document.getElementById('checkout-tel').value = userProfileData.tel; 
-            if(userProfileData.address) document.getElementById('checkout-address').value = userProfileData.address; 
-            updateCartUI(); 
-        }
-
-        document.getElementById('orderForm').addEventListener('submit', async (e) => { e.preventDefault(); const btn = document.getElementById('submitBtn'); btn.innerHTML = 'กำลังส่ง...'; btn.disabled = true; const fileInput = document.getElementById('slip'); let base64 = ""; if (fileInput.files.length) { base64 = await new Promise(r => { const rd = new FileReader(); rd.onload=()=>r(rd.result); rd.readAsDataURL(fileInput.files[0]); }); } const items = Object.values(cart); const total = items.reduce((s,i)=>s+(i.price*i.quantity),0); const payload = { lineUid: userLineUid, name: document.getElementById('checkout-name').value, telephone: document.getElementById('checkout-tel').value, address: document.getElementById('checkout-address').value, image: base64, orderDetails: items, totalPrice: total }; fetch(GAS_URL, { method: 'POST', mode: 'no-cors', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(payload)}).then(() => { alert("สั่งซื้อสำเร็จ!"); liff.closeWindow(); }).catch(() => { alert("Error"); btn.disabled=false; btn.innerHTML="ยืนยันสั่งซื้อ"; }); });
 
         main();
     </script>
