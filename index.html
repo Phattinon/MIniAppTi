@@ -12,13 +12,14 @@
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap');
-        body { font-family: 'Prompt', sans-serif; background-color: #F8F9FA; padding-bottom: 80px; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
+        body { font-family: 'Prompt', sans-serif; background-color: #F8F9FA; padding-bottom: 0; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
         
         .bg-mk-red { background-color: #ce1126; }
         .text-mk-red { color: #ce1126; }
         .text-gold { color: #D4AF37; }
+        .bg-gold { background-color: #D4AF37; }
         
-        .page { display: none; width: 100%; min-height: 100vh; animation: fadeIn 0.2s ease-out; }
+        .page { display: none; width: 100%; min-height: 100vh; background: #F8F9FA; padding-bottom: 80px; animation: fadeIn 0.2s ease-out; }
         .page.active { display: block !important; }
         .page.full-screen { padding-bottom: 0; z-index: 999; position: fixed; top: 0; left: 0; overflow-y: auto; height: 100%; background-color: white; }
         
@@ -31,12 +32,16 @@
 
         #map { height: 100%; width: 100%; }
         .center-pin { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); z-index: 1000; pointer-events: none; }
-        .branch-selected { border-color: #ce1126; background-color: #FEF2F2; }
-        .option-input:checked + label { background-color: #ce1126; color: white; border-color: #ce1126; }
         
-        /* Badge Animation */
         .badge-pop { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes pop { 0% { transform: scale(0); } 90% { transform: scale(1.2); } 100% { transform: scale(1); } }
+
+        .store-closed-overlay { filter: grayscale(100%); pointer-events: none; opacity: 0.6; }
+        .scroll-smooth { scroll-behavior: smooth; }
+        .branch-selected { border-color: #ce1126; background-color: #FEF2F2; }
+
+        /* Option Radio Styles */
+        .option-input:checked + label { background-color: #ce1126; color: white; border-color: #ce1126; }
     </style>
 </head>
 <body>
@@ -63,7 +68,7 @@
                     </button>
                 </div>
             </div>
-            
+
             <div class="px-4 mt-[-15px]">
                 <div class="bg-white rounded-lg shadow-md p-2 flex items-center border">
                     <i class="fas fa-search text-gray-400 ml-2"></i>
@@ -73,9 +78,9 @@
 
             <div class="px-4 mt-4 overflow-hidden relative">
                 <div id="banner-slider" class="flex overflow-x-auto space-x-3 hide-scroll snap-x scroll-smooth">
-                    <img src="https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=500&q=60" class="w-[85%] h-36 object-cover rounded-xl shadow snap-center flex-shrink-0">
-                    <img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=500&q=60" class="w-[85%] h-36 object-cover rounded-xl shadow snap-center flex-shrink-0">
-                    <img src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=500&q=60" class="w-[85%] h-36 object-cover rounded-xl shadow snap-center flex-shrink-0">
+                    <img src="https://lh3.googleusercontent.com/d/14NyLzdexNz3oYpByH2_aUAgs-pne5Txa?auto=format&fit=crop&w=500&q=60" class="w-[85%] h-36 object-cover rounded-xl shadow snap-center flex-shrink-0">
+                    <img src="https://lh3.googleusercontent.com/d/1E_LckoHiDLUg0xZMV-J2uTvry-qIHBfr?auto=format&fit=crop&w=500&q=60" class="w-[85%] h-36 object-cover rounded-xl shadow snap-center flex-shrink-0">
+                    <img src="https://lh3.googleusercontent.com/d/1DyJRExYYMMqK7E97vYw3YIeHG-EdViLw?auto=format&fit=crop&w=500&q=60" class="w-[85%] h-36 object-cover rounded-xl shadow snap-center flex-shrink-0">
                 </div>
             </div>
 
@@ -85,10 +90,13 @@
         <div id="closed-alert" class="hidden bg-gray-800 text-white p-4 text-center mx-4 rounded-xl mt-4">
             <i class="fas fa-store-slash text-2xl mb-2"></i>
             <p class="font-bold">ร้านปิดให้บริการชั่วคราว</p>
+            <p class="text-xs opacity-75">กรุณากลับมาใหม่ภายหลัง</p>
         </div>
 
         <div class="container mx-auto p-4">
-            <div id="product-list" class="grid grid-cols-2 gap-4 pb-16"></div>
+            <div id="product-list" class="grid grid-cols-2 gap-4 pb-16">
+                <div class="text-center col-span-2 text-gray-400 mt-10">กำลังโหลดเมนู...</div>
+            </div>
         </div>
     </section>
 
@@ -105,6 +113,7 @@
         </div>
         <div class="p-4 -mt-8">
             <div class="bg-white rounded-xl shadow-lg p-5 mb-4 border border-yellow-100 relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-20 h-20 bg-yellow-50 rounded-full -mr-10 -mt-10 z-0"></div>
                 <div class="relative z-10 flex justify-between items-center">
                     <div><p class="text-xs text-gray-500">คะแนนสะสม</p><p class="text-3xl font-bold text-gold" id="user-points">0</p></div>
                     <div class="text-right"><i class="fas fa-crown text-4xl text-gold opacity-20"></i></div>
@@ -113,7 +122,7 @@
             <div class="bg-white rounded-xl shadow-lg p-5 space-y-4">
                 <h3 class="font-bold text-gray-700 border-b pb-2">ข้อมูลส่วนตัว</h3>
                 <input type="text" id="prof-name" class="w-full border-b p-2 outline-none" placeholder="ชื่อ-นามสกุล">
-                <input type="tel" id="prof-tel" class="w-full border-b p-2 outline-none" placeholder="เบอร์โทร">
+                <input type="tel" id="prof-tel" class="w-full border-b p-2 outline-none" placeholder="เบอร์โทร" maxlength="10">
                 <textarea id="prof-address" rows="2" class="w-full border rounded p-2 outline-none bg-gray-50" placeholder="ที่อยู่"></textarea>
                 <button onclick="saveProfile()" class="w-full bg-mk-red text-white font-bold py-2 rounded-lg shadow">บันทึกข้อมูล</button>
             </div>
@@ -121,50 +130,79 @@
     </section>
 
     <section id="page-ai" class="page">
-        <div class="bg-mk-red p-6 text-white text-center rounded-b-3xl shadow-md pb-10"><i class="fas fa-magic text-4xl mb-2 text-yellow-300"></i><h2 class="text-2xl font-bold">AI จัดเซตสุดคุ้ม</h2></div>
+        <div class="bg-mk-red p-6 text-white text-center rounded-b-3xl shadow-md pb-10"><i class="fas fa-magic text-4xl mb-2 text-yellow-300"></i><h2 class="text-2xl font-bold">AI จัดเซตสุดคุ้ม</h2><p class="text-sm opacity-90">เลือกงบ หรือ แคลอรี่ ให้เราช่วยคิด</p></div>
         <div class="p-4 -mt-8">
             <div class="bg-white rounded-xl shadow-lg p-5 space-y-4">
                 <div class="flex bg-gray-100 rounded-lg p-1">
-                    <button onclick="setAiMode('budget')" id="btn-mode-budget" class="flex-1 py-2 rounded-md text-sm font-bold bg-white shadow text-mk-red">💰 ตามงบ</button>
-                    <button onclick="setAiMode('kcal')" id="btn-mode-kcal" class="flex-1 py-2 rounded-md text-sm font-bold text-gray-500">🔥 ตามแคลฯ</button>
+                    <button onclick="setAiMode('budget')" id="btn-mode-budget" class="flex-1 py-2 rounded-md text-sm font-bold bg-white shadow text-mk-red transition">💰 ตามงบ</button>
+                    <button onclick="setAiMode('kcal')" id="btn-mode-kcal" class="flex-1 py-2 rounded-md text-sm font-bold text-gray-500 transition">🔥 ตามแคลฯ</button>
                 </div>
-                <div class="text-center py-4">
+                <div id="ai-input-container" class="text-center py-4">
                     <p class="text-gray-500 text-sm mb-2" id="ai-label">งบประมาณไม่เกิน (บาท)</p>
                     <div class="flex items-center justify-center space-x-2">
-                        <button onclick="adjustAiValue(-10)" class="w-8 h-8 rounded-full bg-gray-200"><i class="fas fa-minus"></i></button>
-                        <input type="number" id="ai-value" value="200" class="text-3xl font-bold text-center w-32 outline-none" readonly>
-                        <button onclick="adjustAiValue(10)" class="w-8 h-8 rounded-full bg-gray-200"><i class="fas fa-plus"></i></button>
+                        <button onclick="adjustAiValue(-10)" class="w-8 h-8 rounded-full bg-gray-200 text-gray-600"><i class="fas fa-minus"></i></button>
+                        <input type="number" id="ai-value" value="200" class="text-3xl font-bold text-center w-32 outline-none text-gray-800" readonly>
+                        <button onclick="adjustAiValue(10)" class="w-8 h-8 rounded-full bg-gray-200 text-gray-600"><i class="fas fa-plus"></i></button>
                     </div>
                     <input type="range" id="ai-slider" min="50" max="1000" step="10" value="200" class="w-full mt-4 accent-red-600" oninput="syncAiValue(this.value)">
                 </div>
-                <button onclick="generateAiSet()" class="w-full bg-mk-red text-white font-bold py-3 rounded-xl shadow-lg">เริ่มจัดเซต</button>
+                <button onclick="generateAiSet()" class="w-full bg-mk-red text-white font-bold py-3 rounded-xl shadow-lg hover:bg-red-800 transition"><i class="fas fa-wand-magic-sparkles mr-2"></i>เริ่มจัดเซต</button>
             </div>
-            <div id="ai-result" class="mt-6 hidden">
-                <div class="bg-white rounded-xl shadow overflow-hidden relative mb-4">
+            <div id="ai-result" class="mt-6 hidden animate-slide-up">
+                <h3 class="font-bold text-gray-700 mb-3 flex justify-between items-center"><span>✨ เซตแนะนำ</span><button onclick="generateAiSet()" class="text-xs text-mk-red bg-red-50 px-2 py-1 rounded"><i class="fas fa-sync-alt mr-1"></i>เปลี่ยน</button></h3>
+                <div class="bg-white rounded-xl shadow border border-red-100 overflow-hidden relative mb-4">
+                    <div class="absolute top-0 left-0 bg-yellow-400 text-red-900 text-xs font-bold px-3 py-1 rounded-br-lg z-10">คุ้มค่า!</div>
                     <div id="ai-items-list" class="divide-y"></div>
                     <div class="bg-red-50 p-4 flex justify-between items-center">
                         <div><p class="text-xs text-gray-500">รวม</p><p class="text-xl font-bold text-mk-red" id="ai-total-price">0 ฿</p></div>
-                        <button onclick="addAiSetToCart()" class="bg-mk-red text-white px-4 py-2 rounded-lg text-sm font-bold shadow">ใส่ตะกร้า</button>
+                        <div class="text-right mr-4"><p class="text-xs text-gray-500">พลังงาน</p><p class="text-sm font-bold text-orange-600" id="ai-total-kcal">0 Kcal</p></div>
+                        <button onclick="addAiSetToCart()" class="bg-mk-red text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-red-800">ใส่ตะกร้า</button>
                     </div>
                 </div>
+                <div id="ai-similar" class="hidden"><h3 class="font-bold text-gray-700 mb-3 text-sm">💡 เมนูใกล้เคียง</h3><div id="ai-similar-list" class="space-y-2"></div></div>
             </div>
         </div>
     </section>
 
     <section id="page-product-detail" class="page full-screen hidden">
-        <div class="relative"><button onclick="goBack()" class="absolute top-4 left-4 bg-white/80 p-2 rounded-full shadow z-10 text-gray-700"><i class="fas fa-arrow-left"></i></button><img id="detail-img" class="w-full h-72 object-cover"></div>
+        <div class="relative"><button onclick="goBack()" class="absolute top-4 left-4 bg-white/80 p-2 rounded-full shadow z-10 text-gray-700"><i class="fas fa-arrow-left fa-lg"></i></button><img id="detail-img" class="w-full h-72 object-cover"></div>
         <div class="p-5 pb-24"> 
-            <div class="flex justify-between items-start"><h1 id="detail-name" class="text-2xl font-bold text-gray-800 w-3/4"></h1><span id="detail-kcal" class="bg-orange-100 text-orange-600 px-2 py-1 rounded text-xs font-bold"></span></div>
+            <div class="flex justify-between items-start"><h1 id="detail-name" class="text-2xl font-bold text-gray-800 w-3/4"></h1><span id="detail-kcal" class="bg-orange-100 text-orange-600 px-2 py-1 rounded text-xs font-bold whitespace-nowrap"></span></div>
             <p id="detail-cat" class="text-gray-500 text-sm mb-4"></p>
             <p id="detail-price" class="text-3xl font-bold text-mk-red mb-6"></p>
+
             <div id="detail-options-container" class="space-y-4 mb-6"></div>
-            <div class="mb-6"><label class="font-bold text-gray-700 block mb-2">หมายเหตุ</label><textarea id="detail-note" class="w-full bg-gray-50 border rounded-lg p-3 outline-none" rows="2"></textarea></div>
+
+            <div class="mb-6"><label class="font-bold text-gray-700 block mb-2"><i class="far fa-comment-dots mr-2"></i>หมายเหตุเพิ่มเติม</label><textarea id="detail-note" class="w-full bg-gray-50 border rounded-lg p-3 outline-none" rows="2" placeholder="เช่น ไม่ใส่ผักชี"></textarea></div>
             <div class="fixed bottom-0 left-0 w-full bg-white border-t p-4 shadow-lg flex items-center justify-between">
                 <div class="flex items-center space-x-4 border rounded-lg px-3 py-2"><button onclick="adjustDetailQty(-1)" class="text-mk-red text-xl w-8"><i class="fas fa-minus"></i></button><span id="detail-qty" class="font-bold text-xl w-6 text-center">1</span><button onclick="adjustDetailQty(1)" class="text-mk-red text-xl w-8"><i class="fas fa-plus"></i></button></div>
-                <button onclick="submitProductToCart()" class="bg-mk-red text-white font-bold py-3 px-8 rounded-xl shadow-lg flex-grow ml-4 flex justify-between items-center"><span>ใส่ตะกร้า</span><span id="detail-total-btn" class="bg-white/20 px-2 rounded text-sm">0 ฿</span></button>
+                <button onclick="submitProductToCart()" class="bg-mk-red text-white font-bold py-3 px-8 rounded-xl shadow-lg flex-grow ml-4 flex justify-between items-center">
+                    <span>ใส่ตะกร้า</span>
+                    <span id="detail-total-btn" class="bg-white/20 px-2 rounded text-sm">0 ฿</span>
+                </button>
             </div>
         </div>
     </section>
+
+    <section id="page-history-detail" class="page full-screen hidden">
+        <div class="bg-mk-red p-4 text-white flex items-center sticky top-0 z-10 shadow-md"><button onclick="goBack()" class="mr-4"><i class="fas fa-arrow-left fa-lg"></i></button><h1 class="font-bold text-lg">รายละเอียด</h1></div>
+        <div class="p-5">
+            <div class="flex justify-between items-center mb-4"><span id="hist-detail-id" class="text-gray-500 font-mono"></span><span id="hist-detail-date" class="text-sm text-gray-500"></span></div>
+            <div id="hist-detail-status-box" class="text-center p-2 rounded-lg bg-gray-100 font-bold mb-6"></div>
+            <h3 class="font-bold text-gray-800 mb-2 border-b pb-2">รายการสินค้า</h3><div id="hist-detail-items" class="space-y-3 mb-6"></div>
+            <div class="flex justify-between items-center text-xl font-bold border-t pt-4 mb-6"><span>ยอดรวม</span><span id="hist-detail-total" class="text-mk-red"></span></div>
+            <button onclick="reorderCurrentHistory()" class="w-full border border-mk-red text-mk-red font-bold py-3 rounded-xl hover:bg-red-50"><i class="fas fa-redo mr-2"></i>สั่งอีกครั้ง</button>
+        </div>
+    </section>
+
+    <div id="branch-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[80] hidden flex items-end justify-center">
+        <div class="bg-white w-full h-[80vh] rounded-t-3xl p-6 overflow-y-auto animate-slide-up flex flex-col">
+            <div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold">📍 เลือกสาขา</h2><button onclick="closeBranchModal()" class="text-gray-400"><i class="fas fa-times fa-lg"></i></button></div>
+            <button onclick="findNearestBranches()" class="w-full bg-red-50 text-mk-red font-bold py-3 rounded-xl mb-4 border border-red-100 flex items-center justify-center hover:bg-red-100 transition"><i class="fas fa-location-arrow mr-2 animate-pulse"></i> ค้นหาสาขาที่ใกล้ที่สุด</button>
+            <div class="mb-4"><div class="bg-gray-100 rounded-lg p-2 flex items-center border"><i class="fas fa-search text-gray-400 ml-2"></i><input type="text" id="branch-search" placeholder="หรือพิมพ์ชื่อสาขา..." class="w-full ml-3 outline-none text-sm bg-transparent" onkeyup="filterBranches()"></div></div>
+            <div id="branch-list" class="space-y-2 flex-grow overflow-y-auto"><p class="text-center text-gray-400 mt-10 text-sm">กดปุ่มด้านบนเพื่อค้นหา</p></div>
+        </div>
+    </div>
 
     <div id="checkout-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex items-end justify-center">
         <div class="bg-white w-full h-[95vh] rounded-t-3xl p-6 overflow-y-auto pb-20 animate-slide-up relative">
@@ -191,9 +229,11 @@
         </div>
     </div>
 
-    <div id="branch-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[80] hidden flex items-end justify-center"><div class="bg-white w-full h-[80vh] rounded-t-3xl p-6 overflow-y-auto animate-slide-up flex flex-col"><div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold">📍 เลือกสาขา</h2><button onclick="closeBranchModal()" class="text-gray-400"><i class="fas fa-times"></i></button></div><button onclick="findNearestBranches()" class="w-full bg-red-50 text-mk-red font-bold py-3 rounded-xl mb-4 border border-red-100 flex items-center justify-center hover:bg-red-100 transition"><i class="fas fa-location-arrow mr-2 animate-pulse"></i> ค้นหาสาขาที่ใกล้ที่สุด</button><div class="mb-4"><div class="bg-gray-100 rounded-lg p-2 flex items-center border"><i class="fas fa-search text-gray-400 ml-2"></i><input type="text" id="branch-search" placeholder="พิมพ์ชื่อสาขา..." class="w-full ml-3 outline-none text-sm bg-transparent" onkeyup="filterBranches()"></div></div><div id="branch-list" class="space-y-2 flex-grow overflow-y-auto"><p class="text-center text-gray-400 mt-10 text-sm">กดปุ่มเพื่อค้นหา</p></div></div></div>
-    <div id="map-modal" class="fixed inset-0 bg-white z-[70] hidden flex flex-col"><div class="p-4 shadow flex justify-between"><h3 class="font-bold">ระบุพิกัด</h3><button onclick="closeMapModal()">ปิด</button></div><div class="relative flex-grow"><div id="map"></div><div class="center-pin"><i class="fas fa-map-marker-alt text-4xl text-mk-red"></i></div><button onclick="panToCurrentLocation()" class="absolute bottom-6 right-4 bg-white p-3 rounded-full shadow z-[500]"><i class="fas fa-crosshairs"></i></button></div><div class="p-4"><button onclick="confirmLocation()" class="w-full bg-mk-red text-white font-bold py-3 rounded-xl">ยืนยันตำแหน่งนี้</button></div></div>
-    <section id="page-history-detail" class="page full-screen hidden"><div class="bg-mk-red p-4 text-white flex items-center sticky top-0 z-10 shadow-md"><button onclick="goBack()" class="mr-4"><i class="fas fa-arrow-left fa-lg"></i></button><h1 class="font-bold text-lg">รายละเอียด</h1></div><div class="p-5"><div class="flex justify-between items-center mb-4"><span id="hist-detail-id" class="text-gray-500 font-mono"></span><span id="hist-detail-date" class="text-sm text-gray-500"></span></div><div id="hist-detail-status-box" class="text-center p-2 rounded-lg bg-gray-100 font-bold mb-6"></div><h3 class="font-bold text-gray-800 mb-2 border-b pb-2">รายการสินค้า</h3><div id="hist-detail-items" class="space-y-3 mb-6"></div><div class="flex justify-between items-center text-xl font-bold border-t pt-4 mb-6"><span>ยอดรวม</span><span id="hist-detail-total" class="text-mk-red"></span></div><button onclick="reorderCurrentHistory()" class="w-full border border-mk-red text-mk-red font-bold py-3 rounded-xl hover:bg-red-50"><i class="fas fa-redo mr-2"></i>สั่งอีกครั้ง</button></div></section>
+    <div id="map-modal" class="fixed inset-0 bg-white z-[70] hidden flex flex-col">
+        <div class="p-4 shadow flex justify-between"><h3 class="font-bold">ระบุพิกัด</h3><button onclick="closeMapModal()">ปิด</button></div>
+        <div class="relative flex-grow"><div id="map"></div><div class="center-pin"><i class="fas fa-map-marker-alt text-4xl text-mk-red"></i></div><button onclick="panToCurrentLocation()" class="absolute bottom-6 right-4 bg-white p-3 rounded-full shadow z-[500]"><i class="fas fa-crosshairs"></i></button></div>
+        <div class="p-4"><button onclick="confirmLocation()" class="w-full bg-mk-red text-white font-bold py-3 rounded-xl">ยืนยันตำแหน่งนี้</button></div>
+    </div>
 
     <nav class="fixed bottom-0 w-full bg-white border-t flex justify-around py-2 z-40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] text-gray-500">
         <button onclick="switchPage('home')" class="nav-item active-tab flex flex-col items-center w-full" id="tab-home"><i class="fas fa-utensils text-xl mb-1"></i><span class="text-[10px]">เมนู</span></button>
@@ -211,6 +251,7 @@
         let storeStatus = "OPEN", favorites = JSON.parse(localStorage.getItem('mk_favorites') || "[]");
         let currentDetailItem = null, selectedOptions = {}, promptpayId = "0000000000", branchList = [], selectedBranch = null;
         let aiMode = 'budget';
+        let currentAiSet = [], currentHistoryItem = null;
 
         async function main() {
             try {
@@ -223,13 +264,47 @@
                     fetchProducts();
                     loadProfileLocal();
                     fetchHistory();
-                    fetchUserDataFromCloud(); // NEW: Cloud Sync
                     initBannerAutoSlide();
+                    fetchUserDataFromCloud(); // [ADDED]
                 }
             } catch (err) { console.error(err); }
         }
 
-        // --- CORE FUNCTIONS ---
+        // --- FETCH USER FROM CLOUD (ADDED) ---
+        function fetchUserDataFromCloud() {
+            // เช็คก่อนว่าในเครื่องมีไหม ถ้ามีแล้วไม่ต้องดึง (จะได้โหลดเร็ว)
+            if (localStorage.getItem('mk_profile')) return;
+
+            // ถ้าไม่มี ให้ไปดึงจาก Google Sheet (Action: get_user)
+            fetch(`${GAS_URL}?action=get_user&uid=${userLineUid}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.found) {
+                        // ถ้าเจอข้อมูลเก่าใน Sheet ให้บันทึกลงเครื่อง
+                        const p = {
+                            name: data.name,
+                            tel: data.telephone,
+                            address: data.address
+                        };
+                        localStorage.setItem('mk_profile', JSON.stringify(p));
+                        userProfileData = p;
+
+                        // เติมลงหน้า Profile
+                        if(document.getElementById('prof-name')) document.getElementById('prof-name').value = p.name;
+                        if(document.getElementById('prof-tel')) document.getElementById('prof-tel').value = p.tel;
+                        if(document.getElementById('prof-address')) document.getElementById('prof-address').value = p.address;
+                        
+                        // เติมลงหน้า Checkout (ถ้าเปิดอยู่)
+                        if(document.getElementById('checkout-name')) {
+                             document.getElementById('checkout-name').value = p.name;
+                             document.getElementById('checkout-tel').value = p.tel;
+                             document.getElementById('checkout-address').value = p.address;
+                        }
+                    }
+                })
+                .catch(err => console.error("Cloud fetch error:", err));
+        }
+
         function fetchProducts() {
             fetch(GAS_URL).then(res => res.json()).then(data => {
                 storeStatus = data.status || "OPEN";
@@ -328,31 +403,23 @@
             });
         }
 
-        // --- GLOBAL & UTILS ---
-        function openCheckoutModal() { if(storeStatus==='CLOSE'){alert('ร้านปิด');return;} document.getElementById('checkout-modal').classList.remove('hidden'); updateCartUI(); 
+        // --- GLOBAL & UTILS (UPDATED: Auto-fill Profile) ---
+        function openCheckoutModal() { 
+            if(storeStatus==='CLOSE'){alert('ร้านปิด');return;} 
+            document.getElementById('checkout-modal').classList.remove('hidden'); 
+            
+            // Auto-fill from userProfileData (loaded from LocalStorage or Cloud)
             if(userProfileData.name) document.getElementById('checkout-name').value = userProfileData.name;
             if(userProfileData.tel) document.getElementById('checkout-tel').value = userProfileData.tel;
             if(userProfileData.address) document.getElementById('checkout-address').value = userProfileData.address;
+            
+            updateCartUI(); 
         }
         function closeCheckoutModal() { document.getElementById('checkout-modal').classList.add('hidden'); }
         function updateCartItemQty(id,d) { if(cart[id]){ const n=cart[id].quantity+d; if(n<1)return; cart[id].quantity=n; updateCartUI(); } }
         function removeFromCart(id) { delete cart[id]; updateCartUI(); }
         function adjustDetailQty(d) { let q=parseInt(document.getElementById('detail-qty').innerText)+d; if(q<1)q=1; document.getElementById('detail-qty').innerText=q; updateDetailPrice(); }
         
-        function fetchUserDataFromCloud() {
-            if(localStorage.getItem('mk_profile')) return;
-            fetch(`${GAS_URL}?action=get_user&uid=${userLineUid}`).then(r=>r.json()).then(d=>{
-                if(d.found) {
-                    const p={name:d.name,tel:d.telephone,address:d.address};
-                    localStorage.setItem('mk_profile',JSON.stringify(p));
-                    userProfileData=p;
-                    document.getElementById('prof-name').value=p.name;
-                    document.getElementById('prof-tel').value=p.tel;
-                    document.getElementById('prof-address').value=p.address;
-                }
-            });
-        }
-
         document.getElementById('orderForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('submitBtn'); btn.innerHTML='กำลังส่ง...'; btn.disabled=true;
@@ -360,10 +427,15 @@
             const tel=document.getElementById('checkout-tel').value;
             const addr=document.getElementById('checkout-address').value;
             
-            // Save Profile
+            // Save Profile (LocalStorage)
             const p={name:name,tel:tel,address:addr};
             localStorage.setItem('mk_profile',JSON.stringify(p));
             userProfileData=p;
+            
+            // Update Profile Page Immediately (UX)
+            document.getElementById('prof-name').value = name;
+            document.getElementById('prof-tel').value = tel;
+            document.getElementById('prof-address').value = addr;
 
             const f = document.getElementById('slip');
             let b64 = "";
@@ -381,28 +453,35 @@
         function closeBranchModal(){document.getElementById('branch-modal').classList.add('hidden');}
         function findNearestBranches(){if(!navigator.geolocation){alert("No GPS");return;} navigator.geolocation.getCurrentPosition(p=>{const lat=p.coords.latitude,lng=p.coords.longitude; branchList.forEach(b=>{b.d=getDist(lat,lng,b.lat,b.lng);b.txt=b.d.toFixed(2)+" km";}); branchList.sort((a,b)=>(a.status!=='OPEN'?1:0)-(b.status!=='OPEN'?1:0) || a.d-b.d); renderBranches(branchList);});}
         function renderBranches(l){const c=document.getElementById('branch-list');c.innerHTML="";l.forEach((b,i)=>{ const isCl=b.status==='CLOSE'; const stC=isCl?'text-red-500':'text-green-500'; const dist=b.txt?`<span class="text-mk-red text-xs ml-2">(${b.txt})</span>`:''; c.innerHTML+=`<div onclick="${isCl?'':'selectBranch(\''+b.name+'\')'}" class="bg-gray-50 p-3 rounded-lg border mb-2 ${isCl?'opacity-50':'cursor-pointer hover:bg-red-50'}"><div class="flex justify-between"><div><h4 class="font-bold text-sm">${b.name} ${dist}</h4><p class="text-xs ${stC}">${b.status}</p></div><a href="tel:${b.tel}" class="bg-white border p-1 rounded"><i class="fas fa-phone"></i></a></div></div>`; });}
+        function filterBranches() { const k=document.getElementById('branch-search').value.toLowerCase(); renderBranches(branchList.filter(b=>b.name.toLowerCase().includes(k))); }
         function selectBranch(n){const b=branchList.find(x=>x.name===n); selectedBranch=b; document.getElementById('selected-branch-name-mini').innerText=b.name.substring(0,8)+".."; closeBranchModal();}
         function getDist(lat1,lon1,lat2,lon2){var R=6371,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180,a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+        function deg2rad(d) { return d*(Math.PI/180); }
         function setupProfileUI(p){document.getElementById('user-profile-icon').innerHTML=`<img src="${p.pictureUrl}" class="w-full h-full rounded-full">`;document.getElementById('profile-img-large').innerHTML=`<img src="${p.pictureUrl}" class="w-full h-full rounded-full">`;document.getElementById('profile-name').innerText=p.displayName;document.getElementById('header-name').innerText=p.displayName;}
         function switchPage(p){document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));document.getElementById(`page-${p}`).classList.add('active');document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active-tab'));document.getElementById(`tab-${p}`).classList.add('active-tab'); if(p==='home')updateCartUI(); if(p==='history')fetchHistory();}
         function goBack(){document.querySelectorAll('.full-screen').forEach(e=>{e.classList.remove('active');e.classList.add('hidden');});if(document.getElementById('page-home').classList.contains('active'))updateCartUI();}
         function applyStoreStatus(){const b=document.getElementById('store-status-badge');if(storeStatus==='CLOSE'){b.innerText='CLOSED';b.className='bg-red-500 text-[10px] px-2 rounded text-white';document.getElementById('closed-alert').classList.remove('hidden');}else{b.innerText='OPEN';b.className='bg-green-500 text-[10px] px-2 rounded text-white';document.getElementById('closed-alert').classList.add('hidden');}}
-        function setupCategories(p){const c=document.getElementById('category-container'); const cats=[...new Set(p.map(x=>x.category))]; c.innerHTML=`<button onclick="filterCat('all')" class="category-btn active px-4 py-1 rounded-full border text-sm mr-2">ทั้งหมด</button>`; cats.forEach(ct=>c.innerHTML+=`<button onclick="filterCat('${ct}')" class="category-btn px-4 py-1 rounded-full border text-sm mr-2">${ct}</button>`);}
-        function filterCat(c){if(c==='all')renderProducts(allProducts);else renderProducts(allProducts.filter(p=>p.category===c));}
-        function renderProducts(p){const c=document.getElementById('product-list');c.innerHTML="";p.forEach(x=>{c.innerHTML+=`<div onclick="openProductDetail('${x.id}')" class="bg-white rounded-xl shadow-sm overflow-hidden pb-2"><img src="${x.image}" class="w-full h-32 object-cover"><div class="p-2"><h3 class="font-bold text-sm truncate">${x.name}</h3><div class="flex justify-between items-center mt-2"><span class="text-mk-red font-bold">${x.price}.-</span><button class="bg-red-50 text-mk-red w-6 h-6 rounded-full flex items-center justify-center"><i class="fas fa-plus text-xs"></i></button></div></div></div>`;});}
+        function setupCategories(p){const c=document.getElementById('category-container'); const cats=[...new Set(p.map(x=>x.category))]; c.innerHTML=`<button onclick="filterCat('all',this)" class="category-btn active whitespace-nowrap px-4 py-1 rounded-full border border-gray-300 text-sm text-gray-600 transition mx-1">ทั้งหมด</button><button onclick="filterFavorites(this)" class="category-btn whitespace-nowrap px-4 py-1 rounded-full border border-gray-300 text-sm text-gray-600 transition mx-1">❤️ ที่ชอบ</button>`; cats.forEach(ct=>{if(!ct)return;const b=document.createElement('button');b.className='category-btn whitespace-nowrap px-4 py-1 rounded-full border border-gray-300 text-sm text-gray-600 transition mx-1';b.innerText=ct;b.onclick=()=>filterCat(ct,b);c.appendChild(b);});}
+        function filterCat(c,b){document.querySelectorAll('.category-btn').forEach(x=>x.classList.remove('active','border-mk-red','text-white'));b.classList.add('active');if(c==='all')renderProducts(allProducts);else renderProducts(allProducts.filter(p=>p.category===c));}
+        function filterFavorites(b) { document.querySelectorAll('.category-btn').forEach(x=>x.classList.remove('active','border-mk-red','text-white')); b.classList.add('active'); renderProducts(allProducts.filter(p=>favorites.includes(p.id))); }
         function loadProfileLocal(){const d=localStorage.getItem('mk_profile');if(d){const p=JSON.parse(d);document.getElementById('prof-name').value=p.name;document.getElementById('prof-tel').value=p.tel;document.getElementById('prof-address').value=p.address;userProfileData=p;}}
         function saveProfile(){const p={name:document.getElementById('prof-name').value,tel:document.getElementById('prof-tel').value,address:document.getElementById('prof-address').value};localStorage.setItem('mk_profile',JSON.stringify(p));userProfileData=p;alert('บันทึกแล้ว');}
         function openMapModal(){document.getElementById('map-modal').classList.remove('hidden');if(!map){map=L.map('map').setView([13.7563,100.5018],15);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);navigator.geolocation.getCurrentPosition(p=>map.setView([p.coords.latitude,p.coords.longitude],15));}}
         function closeMapModal(){document.getElementById('map-modal').classList.add('hidden');}
         function panToCurrentLocation(){navigator.geolocation.getCurrentPosition(p=>map.setView([p.coords.latitude,p.coords.longitude],15));}
         function confirmLocation(){const c=map.getCenter();document.getElementById('checkout-address').value+=` (${c.lat.toFixed(5)},${c.lng.toFixed(5)})`;closeMapModal();}
-        function fetchHistory(){fetch(`${GAS_URL}?action=get_history&uid=${userLineUid}`).then(r=>r.json()).then(d=>{const l=document.getElementById('history-list');l.innerHTML="";let pts=0;d.forEach(o=>{if(o.status.includes('เสร็จ')||o.status.includes('ส่ง'))pts+=o.total; l.innerHTML+=`<div class="bg-white p-3 rounded-lg shadow-sm mb-2 border-l-4 ${o.status.includes('รอ')?'border-yellow-400':o.status.includes('เสร็จ')?'border-green-500':'border-gray-300'}"><div class="flex justify-between text-sm"><span>#${o.orderId.substring(0,6)}</span><span>${o.date}</span></div><div class="font-bold">${o.total} ฿ <span class="text-xs font-normal bg-gray-100 px-1 rounded">${o.status}</span></div></div>`;});document.getElementById('user-points').innerText=Math.floor(pts/100);});}
-        // AI Functions
-        function setAiMode(m){aiMode=m;document.getElementById('btn-mode-budget').className=m==='budget'?'flex-1 py-2 rounded-md text-sm font-bold bg-white shadow text-mk-red':'flex-1 py-2 rounded-md text-sm font-bold text-gray-500';document.getElementById('btn-mode-kcal').className=m==='kcal'?'flex-1 py-2 rounded-md text-sm font-bold bg-white shadow text-mk-red':'flex-1 py-2 rounded-md text-sm font-bold text-gray-500';}
-        function adjustAiValue(d){const i=document.getElementById('ai-value');i.value=parseInt(i.value)+d;}
-        function syncAiValue(v){document.getElementById('ai-value').value=v;}
-        function generateAiSet(){const limit=parseInt(document.getElementById('ai-value').value); let set=[], total=0; while(total<limit*0.8){const p=allProducts[Math.floor(Math.random()*allProducts.length)]; if(total+p.price<=limit){set.push(p);total+=p.price;}} currentAiSet=set; const c=document.getElementById('ai-items-list'); c.innerHTML=""; set.forEach(i=>c.innerHTML+=`<div class="flex justify-between p-2 border-b text-sm"><span>${i.name}</span><span>${i.price}</span></div>`); document.getElementById('ai-total-price').innerText=total+" ฿"; document.getElementById('ai-result').classList.remove('hidden');}
-        function addAiSetToCart(){currentAiSet.forEach(i=>{const id=i.id; if(cart[id])cart[id].quantity++; else cart[id]={...i,quantity:1};}); updateCartUI(); alert('เพิ่มแล้ว'); switchPage('home');}
+        function fetchHistory(){const l=document.getElementById('history-list');l.innerHTML='<p class="text-center text-gray-400 mt-10">กำลังโหลด...</p>';fetch(`${GAS_URL}?action=get_history&uid=${userLineUid}`).then(r=>r.json()).then(d=>{l.innerHTML="";let pts=0;d.forEach(o=>{if(o.status.includes('เสร็จ')||o.status.includes('ส่ง'))pts+=Number(o.total); l.innerHTML+=`<div onclick="openHistoryDetail('${encodeURIComponent(JSON.stringify(o))}')" class="bg-white p-3 rounded-lg shadow-sm mb-2 border-l-4 ${o.status.includes('รอ')?'border-yellow-400':o.status.includes('เสร็จ')?'border-green-500':'border-gray-300'} cursor-pointer"><div class="flex justify-between text-sm"><span>#${o.orderId.substring(0,6)}</span><span>${o.date}</span></div><div class="font-bold">${Number(o.total).toLocaleString()} ฿ <span class="text-xs font-normal bg-gray-100 px-1 rounded">${o.status}</span></div></div>`;});document.getElementById('user-points').innerText=Math.floor(pts/100);});}
+        function openHistoryDetail(encoded) { const data = JSON.parse(decodeURIComponent(encoded)); currentHistoryItem = data; document.getElementById('hist-detail-id').innerText = '#' + data.orderId.substring(0,8).toUpperCase(); document.getElementById('hist-detail-date').innerText = data.date; document.getElementById('hist-detail-status-box').innerText = data.status; document.getElementById('hist-detail-total').innerText = Number(data.total).toLocaleString() + ' ฿'; const cont = document.getElementById('hist-detail-items'); cont.innerHTML = ""; let items=[]; try{items=JSON.parse(data.items);}catch(e){items=[data.items]}; items.forEach(i => { cont.innerHTML += `<div class="flex justify-between text-sm border-b pb-2 last:border-0"><span class="text-gray-700 w-2/3">${i.name} <span class="text-xs text-gray-400">x${i.quantity}</span></span><span class="font-medium">${(Number(i.price)*Number(i.quantity)).toLocaleString()}</span></div>`; }); const page = document.getElementById('page-history-detail'); page.classList.remove('hidden'); page.classList.add('active'); }
+        function reorderCurrentHistory() { if(!currentHistoryItem) return; cart = {}; let items=[]; try{items=JSON.parse(currentHistoryItem.items);}catch(e){items=[currentHistoryItem.items]}; items.forEach(item => { const productRef = allProducts.find(p => p.name === item.name); if(productRef) { const cartId = productRef.id + "_reorder"; cart[cartId] = { ...productRef, id: cartId, quantity: item.quantity, note: item.note || "", price: item.price }; } }); updateCartUI(); goBack(); openCheckoutModal(); }
+        // Keep AI logic the same, just hidden here for brevity but it's in the full copy block above.
+        function generateAiSet() { const limit = parseInt(document.getElementById('ai-value').value); const listContainer = document.getElementById('ai-items-list'); const mains = allProducts.filter(p => !p.category.includes('น้ำ') && !p.category.includes('เครื่องดื่ม') && !p.category.includes('หวาน')); const drinks = allProducts.filter(p => p.category.includes('น้ำ') || p.category.includes('เครื่องดื่ม')); const desserts = allProducts.filter(p => p.category.includes('หวาน') || p.category.includes('ทานเล่น')); let bestSet = []; let attempts = 0; let found = false; while (attempts < 50 && !found) { let set = []; let currentTotal = 0; let currentKcal = 0; const rMain = mains[Math.floor(Math.random() * mains.length)]; if(rMain) { set.push(rMain); currentTotal += rMain.price; currentKcal += (rMain.kcal || 0); } if (drinks.length > 0 && Math.random() > 0.3) { const rDrink = drinks[Math.floor(Math.random() * drinks.length)]; set.push(rDrink); currentTotal += rDrink.price; currentKcal += (rDrink.kcal || 0); } if (desserts.length > 0 && Math.random() > 0.5) { const rDessert = desserts[Math.floor(Math.random() * desserts.length)]; set.push(rDessert); currentTotal += rDessert.price; currentKcal += (rDessert.kcal || 0); } if (aiMode === 'budget') { if (currentTotal <= limit && currentTotal > (limit * 0.5)) { bestSet = set; found = true; } } else { if (currentKcal <= limit && currentKcal > (limit * 0.6)) { bestSet = set; found = true; } } attempts++; } if (bestSet.length === 0) { alert("ไม่พบเซตที่ตรงเงื่อนไข"); return; } currentAiSet = bestSet; listContainer.innerHTML = ""; let tp = 0; let tk = 0; bestSet.forEach(p => { tp += p.price; tk += (p.kcal || 0); listContainer.innerHTML += `<div class="flex items-center p-3"><img src="${p.image}" class="w-12 h-12 rounded-lg object-cover bg-gray-100"><div class="ml-3 flex-grow"><p class="font-bold text-sm text-gray-800">${p.name}</p><p class="text-xs text-gray-500">${p.category} | ${p.kcal||0} Kcal</p></div><p class="font-bold text-mk-red">${p.price} ฿</p></div>`; }); document.getElementById('ai-total-price').innerText = tp + " ฿"; document.getElementById('ai-total-kcal').innerText = tk + " Kcal"; document.getElementById('ai-result').classList.remove('hidden'); if(bestSet.length > 0) generateSimilarItems(bestSet[0]); }
+        function generateSimilarItems(mainDish) { const container = document.getElementById('ai-similar'); const list = document.getElementById('ai-similar-list'); if(!mainDish) return; const similars = allProducts.filter(p => p.category === mainDish.category && p.id !== mainDish.id && Math.abs(p.price - mainDish.price) < 50).sort(() => 0.5 - Math.random()).slice(0, 2); if (similars.length === 0) { container.classList.add('hidden'); return; } list.innerHTML = ""; similars.forEach(p => { list.innerHTML += `<div onclick="replaceMainDish('${p.id}')" class="bg-white p-2 rounded border flex justify-between items-center cursor-pointer hover:bg-gray-50"><div class="flex items-center"><img src="${p.image}" class="w-8 h-8 rounded object-cover"><div class="ml-2"><span class="text-xs font-bold text-gray-700 block">${p.name}</span><span class="text-[10px] text-gray-500">${p.price} ฿</span></div></div><span class="text-xs text-mk-red font-bold">เลือก <i class="fas fa-check-circle"></i></span></div>`; }); container.classList.remove('hidden'); }
+        function addAiSetToCart() { currentAiSet.forEach(p => { if (cart[p.id]) cart[p.id].quantity++; else cart[p.id] = { ...p, quantity: 1 }; }); updateCartUI(); alert(`เพิ่ม ${currentAiSet.length} รายการแล้ว!`); switchPage('home'); }
+        function replaceMainDish(newId) { const newMain = allProducts.find(p => p.id == newId); currentAiSet[0] = newMain; const listContainer = document.getElementById('ai-items-list'); listContainer.innerHTML = ""; let tp = 0; let tk = 0; currentAiSet.forEach(p => { tp += p.price; tk += (p.kcal || 0); listContainer.innerHTML += `<div class="flex items-center p-3"><img src="${p.image}" class="w-12 h-12 rounded-lg object-cover bg-gray-100"><div class="ml-3 flex-grow"><p class="font-bold text-sm text-gray-800">${p.name}</p><p class="text-xs text-gray-500">${p.category} | ${p.kcal||0} Kcal</p></div><p class="font-bold text-mk-red">${p.price} ฿</p></div>`; }); document.getElementById('ai-total-price').innerText = tp + " ฿"; document.getElementById('ai-total-kcal').innerText = tk + " Kcal"; }
+        function setAiMode(mode) { aiMode = mode; const bB = document.getElementById('btn-mode-budget'); const bK = document.getElementById('btn-mode-kcal'); const lb = document.getElementById('ai-label'); const sl = document.getElementById('ai-slider'); const inp = document.getElementById('ai-value'); if (mode === 'budget') { bB.className = "flex-1 py-2 rounded-md text-sm font-bold bg-white shadow text-mk-red transition"; bK.className = "flex-1 py-2 rounded-md text-sm font-bold text-gray-500 transition"; lb.innerText = "งบประมาณไม่เกิน (บาท)"; sl.min = 50; sl.max = 1000; sl.value = 200; inp.value = 200; } else { bK.className = "flex-1 py-2 rounded-md text-sm font-bold bg-white shadow text-mk-red transition"; bB.className = "flex-1 py-2 rounded-md text-sm font-bold text-gray-500 transition"; lb.innerText = "พลังงานไม่เกิน (Kcal)"; sl.min = 200; sl.max = 1500; sl.value = 500; inp.value = 500; } }
+        function adjustAiValue(d) { const i = document.getElementById('ai-value'); const s = document.getElementById('ai-slider'); let v = parseInt(i.value) + d; i.value = v; s.value = v; }
+        function syncAiValue(v) { document.getElementById('ai-value').value = v; }
+        function searchProduct(k) { if(!k)renderProducts(allProducts); else renderProducts(allProducts.filter(p=>p.name.toLowerCase().includes(k.toLowerCase()))); }
 
         main();
     </script>
